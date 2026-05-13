@@ -1982,7 +1982,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
       display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
-      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:700,maxHeight:"85vh",
+      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:960,maxHeight:"92vh",
         overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
 
         {/* Header */}
@@ -1998,7 +1998,12 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
               {userData?.rating>0 && <StarRating value={Math.round(userData.rating)} readonly/>}
             </div>
           </div>
-          <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:20 }}>✕</button>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <button onClick={()=>{onClose();onPublicar&&onPublicar();}} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 18px",borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 14px ${P}44`}}>
+              ✏️ Publicar
+            </button>
+            <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:20 }}>✕</button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -2014,10 +2019,9 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
           ))}
         </div>
 
-  );
 
-  return (
-    <div style={{ padding:24 }}>
+        {/* Contenido tabs */}
+        <div style={{ padding:24 }}>
       {tab==="anuncios" && (
         loading ? <Spinner/> : (
           <>
@@ -2233,7 +2237,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
           </button>
         </div>
       )}
-    </div>
+        </div>
       </div>
     </div>
 
