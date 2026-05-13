@@ -387,7 +387,11 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
         setCategoria(catMatch.name);
         // Subcategoría — verificar que exista dentro de esa categoría
         if (json.subcategoria) {
-          const subMatch = catMatch.sub.find(s=>s.toLowerCase()===json.subcategoria.toLowerCase());
+          const subQ = json.subcategoria.toLowerCase().replace(/[^a-záéíóúñ0-9]/gi," ").trim();
+          const subMatch =
+            catMatch.sub.find(s=>s.toLowerCase()===json.subcategoria.toLowerCase()) ||
+            catMatch.sub.find(s=>s.toLowerCase().includes(subQ)) ||
+            catMatch.sub.find(s=>subQ.split(" ").some(w=>w.length>3 && s.toLowerCase().includes(w)));
           if (subMatch) setSubcategoria(subMatch);
         }
         setTimeout(()=>{ iaRef.current = false; }, 100);
