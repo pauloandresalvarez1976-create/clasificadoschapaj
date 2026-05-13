@@ -328,6 +328,7 @@ function PublicarModal({ user, userData, onClose, onSuccess }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuccess, setAiSuccess] = useState(false);
   const fileRef = useRef();
+  const iaRef = useRef(false);
 
   const catActual = (window.__CATS__||DEFAULT_CATS).find(c=>c.name===categoria);
 
@@ -382,12 +383,14 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
       // Categoría — verificar que exista en la lista
       const catMatch = allCats.find(c=>c.name.toLowerCase()===json.categoria?.toLowerCase());
       if (catMatch) {
+        iaRef.current = true;
         setCategoria(catMatch.name);
         // Subcategoría — verificar que exista dentro de esa categoría
         if (json.subcategoria) {
           const subMatch = catMatch.sub.find(s=>s.toLowerCase()===json.subcategoria.toLowerCase());
           if (subMatch) setSubcategoria(subMatch);
         }
+        setTimeout(()=>{ iaRef.current = false; }, 100);
       }
 
       // Precio
@@ -509,7 +512,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
               <Sel label="Moneda" value={moneda} onChange={setMoneda} options={[{value:"ARS",label:"Pesos ($)"},{value:"USD",label:"Dólares (U$S)"}]}/>
             </div>
 
-            <Sel label="Categoría" value={categoria} onChange={v=>{setCategoria(v);setSubcategoria("");}} required
+            <Sel label="Categoría" value={categoria} onChange={v=>{ setCategoria(v); if(!iaRef.current) setSubcategoria(""); }} required
               options={[{value:"",label:"Seleccioná una categoría"},...(window.__CATS__||DEFAULT_CATS).map(c=>({value:c.name,label:`${c.icon} ${c.name}`}))]}/>
 
             {catActual && <Sel label="Subcategoría" value={subcategoria} onChange={setSubcategoria}
