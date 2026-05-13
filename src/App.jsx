@@ -243,7 +243,7 @@ function AuthModal({ onClose, onSuccess }) {
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,padding:32,width:"100%",maxWidth:400,
         boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ textAlign:"center",marginBottom:24 }}>
@@ -1981,9 +1981,9 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   return (
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
-      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:960,maxHeight:"92vh",
-        overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
+      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
+      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:1200,maxHeight:"96vh",height:"96vh",
+        overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ background:`linear-gradient(135deg,${AC},#2D2D4E)`,padding:"24px 28px",borderRadius:"20px 20px 0 0",
@@ -2548,7 +2548,7 @@ function EditarFotosModal({ anuncio, onClose, onSuccess }) {
   const totalFotos = fotos.length + nuevas.length;
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:560,maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ background:`linear-gradient(135deg,#0EA5E9,#0284C7)`,padding:"20px 24px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <div>
@@ -2652,7 +2652,7 @@ function DestacarModal({ anuncio, userData, user, onClose, onSuccess }) {
   };
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:480,boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ background:"linear-gradient(135deg,#F59E0B,#D97706)",padding:"20px 24px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <div>
@@ -2779,7 +2779,7 @@ function RenovarPagoModal({ anuncio, user, userData, onClose, onSuccess }) {
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:460,
         boxShadow:"0 24px 80px rgba(0,0,0,.3)",overflow:"hidden" }} onClick={e=>e.stopPropagation()}>
 
@@ -4979,7 +4979,7 @@ function AAds() {
       {/* Plan Modal */}
       {planModal && (
         <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-          display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+          display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
           <div style={{ background:SF,borderRadius:20,padding:32,width:"100%",maxWidth:440,
             boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
             <div style={{ fontWeight:800,fontSize:16,color:AC,marginBottom:4 }}>💎 Cambiar Plan</div>
@@ -6696,7 +6696,7 @@ function AdminLogin({ onSuccess, onCancel }) {
   };
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.8)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.8)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <style>{`@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}`}</style>
       <div style={{ background:SF,borderRadius:20,padding:36,width:"100%",maxWidth:360,boxShadow:"0 32px 80px rgba(0,0,0,.4)",animation:shake?"shake .4s":"none" }}>
         <div style={{ textAlign:"center",marginBottom:24 }}>
