@@ -357,7 +357,7 @@ function PublicarModal({ user, userData, onClose, onSuccess }) {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-5",
           max_tokens: 800,
           messages:[{ role:"user", content:`Sos un asistente para el portal de clasificados "Clasificados Chapa J" de San Juan, Argentina.
 El usuario quiere publicar este anuncio: "${titulo}"
@@ -1219,7 +1219,7 @@ function MiTiendaTab({ user, userData, tiendaId }) {
       const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:600,
+          model:"claude-sonnet-4-5", max_tokens:600,
           messages:[{ role:"user", content:`Sos un asistente para el portal "Clasificados Chapa J" de San Juan, Argentina.
 El comercio se llama: "${editForm.nombre}"${editForm.categoria?`\nRubro: "${editForm.categoria}"`:""}
 ${editForm.descripcion?`Descripción actual: "${editForm.descripcion}"`:""}
@@ -1298,7 +1298,7 @@ Respondé ÚNICAMENTE con JSON válido sin backticks:
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
+          model:"claude-sonnet-4-5",
           max_tokens:800,
           messages:[{
             role:"user",
@@ -5193,7 +5193,7 @@ function AStores() {
       const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:600,
+          model:"claude-sonnet-4-5", max_tokens:600,
           messages:[{ role:"user", content:`Sos un asistente para el portal "Clasificados Chapa J" de San Juan, Argentina.
 El comercio se llama: "${form.nombre}"${form.categoria ? `\nRubro/categoría: "${form.categoria}"` : ""}
 
