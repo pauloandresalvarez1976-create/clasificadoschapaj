@@ -1999,7 +1999,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <button onClick={()=>{onClose();onPublicar&&onPublicar();}} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 18px",borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 14px ${P}44`}}>
+            <button onClick={()=>{onPublicar&&onPublicar();}} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 18px",borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 14px ${P}44`}}>
               ✏️ Publicar
             </button>
             <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:20 }}>✕</button>
@@ -2027,7 +2027,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
           <>
             {/* Header acciones */}
             <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap" }}>
-              <button onClick={()=>{ onClose(); onPublicar&&onPublicar(); }}
+              <button onClick={()=>{ onPublicar&&onPublicar(); }}
                 style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 18px",borderRadius:10,
                   background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",
                   cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",
