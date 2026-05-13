@@ -1981,7 +1981,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   return (
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
+      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }} onClick={onClose}>
       <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:1200,maxHeight:"96vh",height:"96vh",
         overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
 
@@ -2289,8 +2289,9 @@ function ConsultasTab({ user }) {
   useEffect(()=>{
     if(!user) return;
     const q = query(collection(db,"conversaciones"),where("participantes","array-contains",user.uid),orderBy("updatedAt","desc"));
-    const unsub = onSnapshot(q,snap=>{ setConvs(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); });
-    return()=>unsub();
+    const timer = setTimeout(()=>setLoading(false), 6000);
+    const unsub = onSnapshot(q,snap=>{ clearTimeout(timer); setConvs(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); });
+    return()=>{ unsub(); clearTimeout(timer); };
   },[user]);
 
   useEffect(()=>{
