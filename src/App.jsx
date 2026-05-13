@@ -353,9 +353,9 @@ function PublicarModal({ user, userData, onClose, onSuccess }) {
     try {
       const allCats = (window.__CATS__||DEFAULT_CATS);
       const catsConSubs = allCats.map(c=>`"${c.name}" (subcategorías: ${c.sub.join(", ")})`).join("\n");
-      const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
+        headers:{ "Content-Type":"application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 800,
@@ -1216,7 +1216,7 @@ function MiTiendaTab({ user, userData, tiendaId }) {
     if (!editForm?.nombre) return;
     setAiLoadingEdit(true); setAiEditOk(false);
     try {
-      const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:600,
@@ -1294,7 +1294,7 @@ Respondé ÚNICAMENTE con JSON válido sin backticks:
   const handleMejorarIA = async (anuncio) => {
     setAiLoading(anuncio.id); setAiResult(null);
     try {
-      const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
@@ -5190,7 +5190,7 @@ function AStores() {
     if (!form.nombre.trim()) return alert("Escribí el nombre del comercio primero");
     setAiLoadingStore(true); setAiStoreOk(false);
     try {
-      const res = await fetch("https://claude-ia.paulo-andres-alvarez-1976.workers.dev", {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:600,
