@@ -1891,6 +1891,15 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [tab, setTab] = useState(initialTab);
   const [renovandoId, setRenovandoId] = useState(null);
   const [showRenovarPago, setShowRenovarPago] = useState(null); // anuncio obj
+  const [seleccionados, setSeleccionados] = React.useState([]);
+  const [filtroEstado, setFiltroEstado] = React.useState("todos");
+  const [busquedaLocal, setBusquedaLocal] = React.useState("");
+  const [editandoId, setEditandoId] = React.useState(null);
+  const [editTitulo, setEditTitulo] = React.useState("");
+  const [editPrecio, setEditPrecio] = React.useState("");
+  const [savingEdit, setSavingEdit] = React.useState(false);
+  const [showEditFotos, setShowEditFotos] = React.useState(null);
+  const [showDestacar, setShowDestacar] = React.useState(null);
 
   useEffect(()=>{
     const q = query(collection(db,"anuncios"),where("uid","==",user.uid),orderBy("createdAt","desc"));
@@ -1937,6 +1946,37 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
   const handleLogout = async () => { await signOut(auth); onClose(); };
 
+  const handleAccionLote = async (accion) => {
+    if(!seleccionados.length) return;
+    if(accion==="borrar" && !window.confirm(`¿Eliminar ${seleccionados.length} anuncio(s)?`)) return;
+    await Promise.all(seleccionados.map(id=>{
+      if(accion==="borrar") return deleteDoc(doc(db,"anuncios",id));
+      return updateDoc(doc(db,"anuncios",id),{ status:accion==="pausar"?"pausado":"activo", updatedAt:serverTimestamp() });
+    }));
+    if(accion==="borrar") setMisAnuncios(prev=>prev.filter(a=>!seleccionados.includes(a.id)));
+    else setMisAnuncios(prev=>prev.map(a=>seleccionados.includes(a.id)?{...a,status:accion==="pausar"?"pausado":"activo"}:a));
+    setSeleccionados([]);
+  };
+
+  const anunciosFiltrados = misAnuncios.filter(a=>{
+    const dias = diasRestantes(a);
+    const vencido = dias !== null && dias <= 0;
+    if(filtroEstado==="activos" && (a.status!=="activo"||vencido)) return false;
+    if(filtroEstado==="pausados" && a.status!=="pausado") return false;
+    if(filtroEstado==="vencidos" && !vencido) return false;
+    if(busquedaLocal && !a.titulo?.toLowerCase().includes(busquedaLocal.toLowerCase())) return false;
+    return true;
+  });
+
+  const todosSeleccionados = anunciosFiltrados.length>0 && seleccionados.length===anunciosFiltrados.length;
+
+  const handleSaveEdit = async (id) => {
+    setSavingEdit(true);
+    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
+    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
+    setEditandoId(null); setSavingEdit(false);
+  };
+
   return (
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
@@ -1973,46 +2013,6 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
           ))}
         </div>
 
-  const [seleccionados, setSeleccionados] = React.useState([]);
-  const [filtroEstado, setFiltroEstado] = React.useState("todos");
-  const [busquedaLocal, setBusquedaLocal] = React.useState("");
-  const [editandoId, setEditandoId] = React.useState(null);
-  const [editTitulo, setEditTitulo] = React.useState("");
-  const [editPrecio, setEditPrecio] = React.useState("");
-  const [savingEdit, setSavingEdit] = React.useState(false);
-  const [showEditFotos, setShowEditFotos] = React.useState(null); // anuncio obj
-  const [showDestacar, setShowDestacar] = React.useState(null);   // anuncio obj
-
-  const handleSaveEdit = async (id) => {
-    setSavingEdit(true);
-    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
-    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
-    setEditandoId(null); setSavingEdit(false);
-  };
-
-  const handleAccionLote = async (accion) => {
-    if(!seleccionados.length) return;
-    if(accion==="borrar" && !window.confirm(`¿Eliminar ${seleccionados.length} anuncio(s)?`)) return;
-    await Promise.all(seleccionados.map(id=>{
-      if(accion==="borrar") return deleteDoc(doc(db,"anuncios",id));
-      return updateDoc(doc(db,"anuncios",id),{ status:accion==="pausar"?"pausado":"activo", updatedAt:serverTimestamp() });
-    }));
-    if(accion==="borrar") setMisAnuncios(prev=>prev.filter(a=>!seleccionados.includes(a.id)));
-    else setMisAnuncios(prev=>prev.map(a=>seleccionados.includes(a.id)?{...a,status:accion==="pausar"?"pausado":"activo"}:a));
-    setSeleccionados([]);
-  };
-
-  const anunciosFiltrados = misAnuncios.filter(a=>{
-    const dias = diasRestantes(a);
-    const vencido = dias !== null && dias <= 0;
-    if(filtroEstado==="activos" && (a.status!=="activo"||vencido)) return false;
-    if(filtroEstado==="pausados" && a.status!=="pausado") return false;
-    if(filtroEstado==="vencidos" && !vencido) return false;
-    if(busquedaLocal && !a.titulo?.toLowerCase().includes(busquedaLocal.toLowerCase())) return false;
-    return true;
-  });
-
-  const todosSeleccionados = anunciosFiltrados.length>0 && seleccionados.length===anunciosFiltrados.length;
 
   return (
     <div style={{ padding:24 }}>
