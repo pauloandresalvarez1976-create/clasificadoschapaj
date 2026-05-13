@@ -1127,10 +1127,10 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
                 </div>
                 <span style={{ fontSize:13,fontWeight:600,color:TX }}>{user.displayName?.split(" ")[0]||"Mi cuenta"}</span>
               </button>
-              <button onClick={onLogout} title="Cerrar sesión" style={{ width:38,height:38,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:TL,transition:"all .2s" }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=ER;e.currentTarget.style.color=ER;e.currentTarget.style.background="#FEF2F2";}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor=BR;e.currentTarget.style.color=TL;e.currentTarget.style.background="transparent";}}>
-                ↪
+              <button onClick={onLogout} title="Cerrar sesión" style={{ padding:"7px 14px",borderRadius:8,border:`1.5px solid ${ER}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontSize:13,fontWeight:700,color:ER,fontFamily:"inherit",transition:"all .2s" }}
+                onMouseEnter={e=>{e.currentTarget.style.background="#FEF2F2";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                Salir
               </button>
             </>
           ) : (
@@ -1891,15 +1891,6 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [tab, setTab] = useState(initialTab);
   const [renovandoId, setRenovandoId] = useState(null);
   const [showRenovarPago, setShowRenovarPago] = useState(null); // anuncio obj
-  const [seleccionados, setSeleccionados] = React.useState([]);
-  const [filtroEstado, setFiltroEstado] = React.useState("todos");
-  const [busquedaLocal, setBusquedaLocal] = React.useState("");
-  const [editandoId, setEditandoId] = React.useState(null);
-  const [editTitulo, setEditTitulo] = React.useState("");
-  const [editPrecio, setEditPrecio] = React.useState("");
-  const [savingEdit, setSavingEdit] = React.useState(false);
-  const [showEditFotos, setShowEditFotos] = React.useState(null);
-  const [showDestacar, setShowDestacar] = React.useState(null);
 
   useEffect(()=>{
     const q = query(collection(db,"anuncios"),where("uid","==",user.uid),orderBy("createdAt","desc"));
@@ -1946,6 +1937,23 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
   const handleLogout = async () => { await signOut(auth); onClose(); };
 
+  const [seleccionados, setSeleccionados] = React.useState([]);
+  const [filtroEstado, setFiltroEstado] = React.useState("todos");
+  const [busquedaLocal, setBusquedaLocal] = React.useState("");
+  const [editandoId, setEditandoId] = React.useState(null);
+  const [editTitulo, setEditTitulo] = React.useState("");
+  const [editPrecio, setEditPrecio] = React.useState("");
+  const [savingEdit, setSavingEdit] = React.useState(false);
+  const [showEditFotos, setShowEditFotos] = React.useState(null); // anuncio obj
+  const [showDestacar, setShowDestacar] = React.useState(null);   // anuncio obj
+
+  const handleSaveEdit = async (id) => {
+    setSavingEdit(true);
+    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
+    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
+    setEditandoId(null); setSavingEdit(false);
+  };
+
   const handleAccionLote = async (accion) => {
     if(!seleccionados.length) return;
     if(accion==="borrar" && !window.confirm(`¿Eliminar ${seleccionados.length} anuncio(s)?`)) return;
@@ -1969,13 +1977,6 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   });
 
   const todosSeleccionados = anunciosFiltrados.length>0 && seleccionados.length===anunciosFiltrados.length;
-
-  const handleSaveEdit = async (id) => {
-    setSavingEdit(true);
-    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
-    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
-    setEditandoId(null); setSavingEdit(false);
-  };
 
   return (
     <>
@@ -2013,6 +2014,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
           ))}
         </div>
 
+  );
 
   return (
     <div style={{ padding:24 }}>
@@ -6410,22 +6412,6 @@ function ASecurity({cfg,set,onSave}) {
 function ABackup() {
   const [exporting,setExporting]=useState(false);
   const [exportMsg,setExportMsg]=useState("");
-  const [maintenanceOn,setMaintenanceOn]=useState(false);
-  const [maintenanceMsg,setMaintenanceMsg]=useState("Sitio en mantenimiento. Volvemos pronto 🔧");
-  const [stats,setStats]=useState(null);
-  const [loadingStats,setLoadingStats]=useState(false);
-  const [toolMsg,setToolMsg]=useState("");
-
-  // Cargar estado de mantenimiento actual
-  useState(()=>{
-    getDoc(doc(db,"config","site")).then(snap=>{
-      if(snap.exists()){
-        const d = snap.data().design||{};
-        setMaintenanceOn(d.maintenance||false);
-        if(d.maintenanceMsg) setMaintenanceMsg(d.maintenanceMsg);
-      }
-    });
-  });
 
   const exportData = async (colName) => {
     setExporting(true); setExportMsg("");
@@ -6455,209 +6441,30 @@ function ABackup() {
           <div style={{ fontWeight:700, marginBottom:14 }}>📦 Exportar datos</div>
           {exportMsg && <div style={{ padding:"8px 12px",borderRadius:8,background:exportMsg.startsWith("✅")?SUCCESS+"18":DANGER+"18",color:exportMsg.startsWith("✅")?SUCCESS:DANGER,fontSize:13,marginBottom:12 }}>{exportMsg}</div>}
           {[
-            {col:"anuncios",     icon:"📋", label:"Exportar Anuncios"},
-            {col:"usuarios",     icon:"👥", label:"Exportar Usuarios"},
-            {col:"tiendas",      icon:"🏪", label:"Exportar Tiendas"},
-            {col:"denuncias",    icon:"🚨", label:"Exportar Denuncias"},
-            {col:"banners",      icon:"📣", label:"Exportar Banners"},
-            {col:"conversaciones",icon:"💬",label:"Exportar Conversaciones"},
-            {col:"pagos",        icon:"💳", label:"Exportar Pagos"},
-            {col:"calificaciones",icon:"⭐",label:"Exportar Calificaciones"},
+            {col:"anuncios",icon:"📋",label:"Exportar Anuncios"},
+            {col:"usuarios",icon:"👥",label:"Exportar Usuarios"},
+            {col:"tiendas",icon:"🏪",label:"Exportar Tiendas"},
+            {col:"denuncias",icon:"🚨",label:"Exportar Denuncias"},
+            {col:"banners",icon:"📣",label:"Exportar Banners"},
           ].map(t=>(
             <div key={t.col} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${BORDER}` }}>
               <div style={{ fontSize:13 }}>{t.icon} {t.label}</div>
               <Btn size="sm" outline color={INFO} onClick={()=>exportData(t.col)} disabled={exporting}>⬇ Exportar JSON</Btn>
             </div>
           ))}
-
-          {/* Exportar config */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${BORDER}` }}>
-            <div style={{ fontSize:13 }}>⚙️ Exportar Configuración</div>
-            <Btn size="sm" outline color={INFO} onClick={async()=>{
-              setExporting(true); setExportMsg("");
-              try {
-                const snap = await getDoc(doc(db,"config","site"));
-                const data = snap.exists() ? snap.data() : {};
-                const clean = JSON.parse(JSON.stringify(data,(k,v)=>{
-                  if(v&&typeof v==="object"&&v.seconds) return new Date(v.seconds*1000).toISOString();
-                  return v;
-                }));
-                const blob = new Blob([JSON.stringify(clean,null,2)],{type:"application/json"});
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `config_site_${new Date().toISOString().split("T")[0]}.json`;
-                a.click();
-                setExportMsg("✅ Configuración exportada");
-              } catch(e){ setExportMsg("❌ Error al exportar config"); }
-              finally { setExporting(false); }
-            }} disabled={exporting}>⬇ Exportar JSON</Btn>
-          </div>
-
-          {/* Exportar TODO en un ZIP */}
-          <div style={{ marginTop:14 }}>
-            <Btn color={SUCCESS} onClick={async()=>{
-              setExporting(true); setExportMsg("Exportando todo... puede tardar unos segundos");
-              const cols = ["anuncios","usuarios","tiendas","denuncias","banners","conversaciones","pagos","calificaciones"];
-              const resultado = {};
-              try {
-                for(const col of cols){
-                  const snap = await getDocs(collection(db,col));
-                  resultado[col] = snap.docs.map(d=>({id:d.id,...d.data()}));
-                }
-                const configSnap = await getDoc(doc(db,"config","site"));
-                resultado["config"] = configSnap.exists() ? configSnap.data() : {};
-                const clean = JSON.parse(JSON.stringify(resultado,(k,v)=>{
-                  if(v&&typeof v==="object"&&v.seconds) return new Date(v.seconds*1000).toISOString();
-                  return v;
-                }));
-                const total = Object.values(clean).reduce((acc,v)=>acc+(Array.isArray(v)?v.length:1),0);
-                const blob = new Blob([JSON.stringify(clean,null,2)],{type:"application/json"});
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `backup_completo_${new Date().toISOString().split("T")[0]}.json`;
-                a.click();
-                setExportMsg(`✅ Backup completo descargado (${total} registros en ${cols.length+1} colecciones)`);
-              } catch(e){ setExportMsg("❌ Error en backup completo"); }
-              finally { setExporting(false); }
-            }} disabled={exporting}>
-              {exporting?"Exportando...":"📦 Backup completo (todo en un archivo)"}
-            </Btn>
-          </div>
         </Card>
         <Card>
           <div style={{ fontWeight:700, marginBottom:14 }}>🛠️ Herramientas</div>
-
-          {/* Modo mantenimiento toggle rápido */}
-          <div style={{ background: maintenanceOn?"#FEF2F2":"#F0FDF4", border:`1.5px solid ${maintenanceOn?"#FECACA":"#BBF7D0"}`, borderRadius:10, padding:"12px 14px", marginBottom:14 }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:maintenanceOn?8:0 }}>
-              <div>
-                <div style={{ fontWeight:700, fontSize:13, color:maintenanceOn?DANGER:SUCCESS }}>
-                  {maintenanceOn?"🔧 Sitio en mantenimiento":"✅ Sitio en línea"}
-                </div>
-                <div style={{ fontSize:11, color:TEXT_MID }}>
-                  {maintenanceOn?"Los visitantes ven el aviso de mantenimiento":"El sitio está visible para todos"}
-                </div>
-              </div>
-              <div onClick={async()=>{
-                const newVal = !maintenanceOn;
-                setMaintenanceOn(newVal);
-                await setDoc(doc(db,"config","site"),{ design:{ maintenance:newVal } },{ merge:true });
-              }} style={{ width:44,height:24,borderRadius:12,cursor:"pointer",
-                background:maintenanceOn?DANGER:SUCCESS,position:"relative",transition:"background .2s",flexShrink:0 }}>
-                <div style={{ position:"absolute",top:2,left:maintenanceOn?22:2,width:20,height:20,
-                  borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)" }}/>
-              </div>
-            </div>
-            {maintenanceOn && (
-              <input value={maintenanceMsg} onChange={e=>setMaintenanceMsg(e.target.value)}
-                onBlur={async()=>{ await setDoc(doc(db,"config","site"),{ design:{ maintenanceMsg } },{ merge:true }); }}
-                placeholder="Mensaje para los visitantes..."
-                style={{ width:"100%",padding:"7px 10px",borderRadius:7,border:`1px solid #FECACA`,
-                  fontFamily:"inherit",fontSize:12,outline:"none",boxSizing:"border-box",marginTop:4 }}/>
-            )}
-          </div>
-
-          {/* Estadísticas en tiempo real */}
-          <div style={{ background:"#F8FAFC", borderRadius:10, padding:"12px 14px", marginBottom:14 }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-              <div style={{ fontWeight:700, fontSize:13, color:TEXT }}>📊 Estadísticas en tiempo real</div>
-              <Btn size="sm" outline color={INFO} onClick={async()=>{
-                setLoadingStats(true);
-                try {
-                  const [anunSnap,userSnap,tiendSnap,pagSnap] = await Promise.all([
-                    getDocs(collection(db,"anuncios")),
-                    getDocs(collection(db,"usuarios")),
-                    getDocs(collection(db,"tiendas")),
-                    getDocs(collection(db,"pagos")),
-                  ]);
-                  setStats({
-                    anuncios: anunSnap.size,
-                    usuarios: userSnap.size,
-                    tiendas: tiendSnap.size,
-                    pagos: pagSnap.size,
-                    activos: anunSnap.docs.filter(d=>d.data().status==="activo").length,
-                    pausados: anunSnap.docs.filter(d=>d.data().status==="pausado").length,
-                  });
-                } catch(e){}
-                setLoadingStats(false);
-              }} disabled={loadingStats}>{loadingStats?"Cargando...":"Actualizar"}</Btn>
-            </div>
-            {stats ? (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-                {[
-                  {icon:"📋",label:"Anuncios",val:stats.anuncios,color:"#3B82F6"},
-                  {icon:"✅",label:"Activos",val:stats.activos,color:SUCCESS},
-                  {icon:"⏸",label:"Pausados",val:stats.pausados,color:WARNING},
-                  {icon:"👥",label:"Usuarios",val:stats.usuarios,color:"#8B5CF6"},
-                  {icon:"🏪",label:"Tiendas",val:stats.tiendas,color:"#F59E0B"},
-                  {icon:"💳",label:"Pagos",val:stats.pagos,color:"#10B981"},
-                ].map(s=>(
-                  <div key={s.label} style={{ textAlign:"center",padding:"8px 4px",background:"#fff",borderRadius:8,border:`1px solid ${BORDER}` }}>
-                    <div style={{ fontSize:16 }}>{s.icon}</div>
-                    <div style={{ fontWeight:800,fontSize:18,color:s.color }}>{s.val}</div>
-                    <div style={{ fontSize:10,color:TEXT_LIGHT }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize:12,color:TEXT_LIGHT,textAlign:"center",padding:"8px 0" }}>
-                Hacé clic en "Actualizar" para ver los datos
-              </div>
-            )}
-          </div>
-
-          {/* Limpieza de datos */}
-          <div style={{ fontWeight:700, fontSize:12, color:TEXT_LIGHT, letterSpacing:1, marginBottom:8, marginTop:4 }}>LIMPIEZA DE DATOS</div>
-          <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:14 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${BORDER}` }}>
-              <div>
-                <div style={{ fontSize:13 }}>🗑️ Borrar anuncios vencidos</div>
-                <div style={{ fontSize:11,color:TEXT_LIGHT }}>Elimina anuncios con más de 60 días vencidos</div>
-              </div>
-              <Btn size="sm" outline color={DANGER} onClick={async()=>{
-                if(!window.confirm("¿Eliminar anuncios vencidos hace más de 60 días? Esta acción no se puede deshacer.")) return;
-                setToolMsg("");
-                const limite = new Date(); limite.setDate(limite.getDate()-60);
-                const snap = await getDocs(query(collection(db,"anuncios"),where("vencimientoAt","<=",limite)));
-                if(snap.empty){ setToolMsg("ℹ️ No hay anuncios para limpiar"); return; }
-                await Promise.all(snap.docs.map(d=>deleteDoc(d.ref)));
-                setToolMsg(`✅ ${snap.size} anuncio(s) eliminado(s)`);
-              }}>Ejecutar</Btn>
-            </div>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${BORDER}` }}>
-              <div>
-                <div style={{ fontSize:13 }}>💬 Borrar conversaciones vacías</div>
-                <div style={{ fontSize:11,color:TEXT_LIGHT }}>Limpia chats sin mensajes</div>
-              </div>
-              <Btn size="sm" outline color={WARNING} onClick={async()=>{
-                setToolMsg("");
-                const snap = await getDocs(collection(db,"conversaciones"));
-                let borradas = 0;
-                for(const d of snap.docs){
-                  const msgs = await getDocs(collection(db,"conversaciones",d.id,"mensajes"));
-                  if(msgs.empty){ await deleteDoc(d.ref); borradas++; }
-                }
-                setToolMsg(borradas>0?`✅ ${borradas} conversación(es) vacía(s) eliminada(s)`:"ℹ️ No hay conversaciones vacías");
-              }}>Ejecutar</Btn>
-            </div>
-          </div>
-          {toolMsg && <div style={{ padding:"8px 12px",borderRadius:8,background:toolMsg.startsWith("✅")?"#F0FDF4":"#FFF7ED",color:toolMsg.startsWith("✅")?SUCCESS:WARNING,fontSize:12,marginBottom:12 }}>{toolMsg}</div>}
-
-          {/* Accesos directos */}
-          <div style={{ fontWeight:700, fontSize:12, color:TEXT_LIGHT, letterSpacing:1, marginBottom:8 }}>ACCESOS DIRECTOS</div>
           {[
             {icon:"🗑️",label:"Limpiar caché del navegador",color:WARNING,action:()=>{localStorage.clear();sessionStorage.clear();alert("Caché limpiado");}},
             {icon:"🔄",label:"Recargar configuración",color:INFO,action:()=>window.location.reload()},
-            {icon:"📊",label:"Firebase — Estadísticas",color:SUCCESS,action:()=>window.open("https://console.firebase.google.com/project/clasificados-chapa-j","_blank")},
-            {icon:"🗄️",label:"Firebase — Storage (fotos)",color:SUCCESS,action:()=>window.open("https://console.firebase.google.com/project/clasificados-chapa-j/storage","_blank")},
-            {icon:"👤",label:"Firebase — Autenticación",color:SUCCESS,action:()=>window.open("https://console.firebase.google.com/project/clasificados-chapa-j/authentication","_blank")},
+            {icon:"📊",label:"Ver estadísticas Firebase",color:SUCCESS,action:()=>window.open("https://console.firebase.google.com/project/clasificados-chapa-j","_blank")},
             {icon:"🌐",label:"Ver sitio en vivo",color:PRIMARY,action:()=>window.open("https://www.clasificadoschapaj.com.ar","_blank")},
             {icon:"📣",label:"Panel Netlify",color:TEXT_MID,action:()=>window.open("https://app.netlify.com","_blank")},
-            {icon:"💳",label:"Panel MercadoPago",color:"#009EE3",action:()=>window.open("https://www.mercadopago.com.ar/activities","_blank")},
           ].map(t=>(
-            <div key={t.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <div key={t.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={{ fontSize:13 }}>{t.icon} {t.label}</div>
-              <Btn size="sm" outline color={t.color} onClick={t.action}>Abrir</Btn>
+              <Btn size="sm" outline color={t.color} onClick={t.action}>Ejecutar</Btn>
             </div>
           ))}
         </Card>
