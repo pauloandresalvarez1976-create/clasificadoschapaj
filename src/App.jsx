@@ -5114,6 +5114,11 @@ function AUsers() {
     setUsers(prev=>prev.map(u=>u.id===id?{...u,verificado:valor}:u));
   };
 
+  const handleCambiarPlan = async (id, plan) => {
+    await updateDoc(doc(db,"usuarios",id),{ plan });
+    setUsers(prev=>prev.map(u=>u.id===id?{...u,plan}:u));
+  };
+
   const filtered = users.filter(u=>
     !search || u.nombre?.toLowerCase().includes(search.toLowerCase()) || u.email?.includes(search)
   );
@@ -5136,10 +5141,19 @@ function AUsers() {
         </div>
         {loading ? <div style={{ textAlign:"center",padding:30,color:TEXT_LIGHT }}>Cargando usuarios...</div> :
           filtered.length===0 ? <div style={{ textAlign:"center",padding:30,color:TEXT_LIGHT }}>No hay usuarios</div> :
-          <Tbl headers={["Nombre","Email","Rol","Estado","Verificado","Desde","Acciones"]} rows={filtered.map(u=>[
+          <Tbl headers={["Nombre","Email","Rol","Plan","Estado","Verificado","Desde","Acciones"]} rows={filtered.map(u=>[
             <span style={{ fontWeight:600 }}>{u.nombre||"—"}</span>,
             <span style={{ color:INFO, fontSize:12 }}>{u.email||"—"}</span>,
             <Pill label={u.rol||"usuario"} color={u.rol==="tienda"?PRIMARY:INFO}/>,
+            <select value={u.plan||"cuarzo"} onChange={e=>handleCambiarPlan(u.id,e.target.value)}
+              style={{padding:"4px 8px",borderRadius:6,border:"1.5px solid #E5E7EB",fontSize:12,
+                fontFamily:"inherit",cursor:"pointer",fontWeight:700,
+                background:u.plan==="diamante"?"#F5F3FF":u.plan==="esmeralda"?"#F0FDF4":"#F9FAFB",
+                color:u.plan==="diamante"?"#7C3AED":u.plan==="esmeralda"?"#16A34A":"#6B7280"}}>
+              <option value="cuarzo">🪨 Cuarzo</option>
+              <option value="esmeralda">💚 Esmeralda</option>
+              <option value="diamante">💠 Diamante</option>
+            </select>,
             <Pill label={u.status||"activo"} color={(u.status||"activo")==="activo"?SUCCESS:DANGER}/>,
             <span style={{ cursor:"pointer" }} title={u.verificado?"Click para quitar verificación":"Click para verificar manualmente"}
               onClick={()=>handleVerificar(u.id,!u.verificado)}>
