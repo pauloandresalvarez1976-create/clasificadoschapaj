@@ -1599,7 +1599,7 @@ Respondé ÚNICAMENTE con JSON válido sin backticks ni texto extra:
   );
 }
 
-function PlanTab({ userData, user }) {
+function PlanTab({ userData, user, onSubView }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState("");
   const [pricing, setPricing] = useState(null);
@@ -1650,6 +1650,7 @@ function PlanTab({ userData, user }) {
     setPlanSeleccionado(planId);
     setMetodoPago(mpEnabled && transferEnabled ? null : mpEnabled ? "mp" : transferEnabled ? "transferencia" : null);
     setError(""); setComprobante(null); setCompEnviado(false);
+    onSubView&&onSubView(true);
   };
 
   const handlePagarMP = async () => {
@@ -1703,7 +1704,7 @@ function PlanTab({ userData, user }) {
     const plan = planes.find(p=>p.id===planSeleccionado);
     return (
       <div>
-        <button onClick={()=>{ setPlanSeleccionado(null); setMetodoPago(null); }}
+        <button onClick={()=>{ setPlanSeleccionado(null); setMetodoPago(null); onSubView&&onSubView(false); }}
           style={{ background:"none", border:`1.5px solid ${BR}`, borderRadius:8, padding:"6px 14px", cursor:"pointer", fontSize:13, color:TL, fontFamily:"inherit", marginBottom:20 }}>
           ← Volver a los planes
         </button>
@@ -1891,6 +1892,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [tab, setTab] = useState(initialTab);
   const [renovandoId, setRenovandoId] = useState(null);
   const [showRenovarPago, setShowRenovarPago] = useState(null); // anuncio obj
+  const [planEnPago, setPlanEnPago] = useState(false); // true cuando PlanTab muestra sub-flujo de pago
 
   useEffect(()=>{
     const q = query(collection(db,"anuncios"),where("uid","==",user.uid),orderBy("createdAt","desc"));
@@ -1981,7 +1983,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   return (
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }} onClick={onClose}>
+      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:1200,maxHeight:"96vh",height:"96vh",
         overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
 
@@ -2002,7 +2004,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
             <button onClick={()=>{onPublicar&&onPublicar();}} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 18px",borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 14px ${P}44`}}>
               ✏️ Publicar
             </button>
-            <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:20 }}>✕</button>
+            <button onClick={()=>{ if(planEnPago){ setPlanEnPago(false); } else { onClose(); } }} style={{ background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:20,padding:"4px 8px" }}>✕</button>
           </div>
         </div>
 
@@ -2210,7 +2212,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
         )
       )}
 
-      {tab==="plan" && <PlanTab userData={userData} user={user}/>}
+      {tab==="plan" && <PlanTab userData={userData} user={user} onSubView={setPlanEnPago}/>}
       {tab==="tienda" && userData?.tiendaId && <MiTiendaTab user={user} userData={userData} tiendaId={userData.tiendaId}/>}
 
       {/* ── CONSULTAS ── */}
