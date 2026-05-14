@@ -3908,6 +3908,39 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   const [showMensajes, setShowMensajes] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [selTienda, setSelTienda] = useState(null);
+
+  // ── BOTÓN ATRÁS para anuncio y tienda ───────────────────────────
+  // Cuando se abre un anuncio o tienda empujamos una entrada al historial.
+  // El popstate la captura y cierra el detalle en lugar de salir.
+  const prevSelAnuncio = useRef(null);
+  const prevSelTienda  = useRef(null);
+
+  useEffect(()=>{
+    // Abrió anuncio
+    if (selAnuncio && !prevSelAnuncio.current) {
+      history.pushState({ modal: "anuncio" }, "");
+    }
+    prevSelAnuncio.current = selAnuncio;
+  }, [selAnuncio]);
+
+  useEffect(()=>{
+    // Abrió tienda
+    if (selTienda && !prevSelTienda.current) {
+      history.pushState({ modal: "tienda" }, "");
+    }
+    prevSelTienda.current = selTienda;
+  }, [selTienda]);
+
+  useEffect(()=>{
+    const handlePop = (e) => {
+      // Cerrar en orden: anuncio primero (puede estar sobre tienda), luego tienda
+      if (selAnuncio) { setSelAnuncio(null); return; }
+      if (selTienda)  { setSelTienda(null);  return; }
+      // Si ninguno está abierto, dejar que el handler del App raíz maneje el atrás
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [selAnuncio, selTienda]);
   const [securityNotice, setSecurityNotice] = useState({ show:true, msg:"Nuestro equipo nunca te llamará por teléfono. Solo podés recibir WhatsApp desde el número oficial" });
   const [systemAlert, setSystemAlert] = useState({ show:false, text:"", type:"warning" });
   const [maintenance, setMaintenance] = useState({ active:false, msg:"Sitio en mantenimiento. Volvemos pronto 🔧" });
