@@ -272,10 +272,10 @@ function AuthModal({ onClose, onSuccess }) {
 
             {error && <Alert type="error">{error}</Alert>}
 
-            {tab==="register" && <Inp label="Nombre completo" value={nombre} onChange={setNombre} placeholder="Paulo Álvarez" required />}
+            {tab==="register" && <Inp label="Nombre completo" value={nombre} onChange={setNombre} placeholder="Ej: Juan Pérez" required />}
             <Inp label="Email" value={email} onChange={setEmail} type="email" placeholder="tu@email.com" required />
             <Inp label="Contraseña" value={pass} onChange={setPass} type="password" placeholder="••••••••" required />
-            {tab==="register" && <Inp label="Teléfono / WhatsApp" value={tel} onChange={setTel} placeholder="2645461073" hint="Sin 0 ni 15, solo 10 dígitos"/>}
+            {tab==="register" && <Inp label="Teléfono / WhatsApp" value={tel} onChange={setTel} placeholder="Ej: 2645000000" hint="Sin 0 ni 15, solo 10 dígitos"/>}
 
             <Btn full color={AC} onClick={tab==="login"?handleLogin:handleRegister} disabled={loading}>
               {loading?"Cargando...":(tab==="login"?"Ingresar":"Crear cuenta gratis")}
@@ -583,7 +583,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
                   <div style={{ position:"absolute",top:2,left:mostrarWA?22:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s" }}/>
                 </div>
               </div>
-              {mostrarWA && <Inp label="Número de WhatsApp" value={contactoWA} onChange={setContactoWA} placeholder="2645461073" hint="10 dígitos sin 0 ni 15"/>}
+              {mostrarWA && <Inp label="Número de WhatsApp" value={contactoWA} onChange={setContactoWA} placeholder="Ej: 2645000000" hint="10 dígitos sin 0 ni 15"/>}
             </div>
 
             <div style={{ background:"#FFF8E1",border:"1px solid #F5A623",borderRadius:10,padding:12,marginBottom:16,fontSize:12,color:"#92400E" }}>
