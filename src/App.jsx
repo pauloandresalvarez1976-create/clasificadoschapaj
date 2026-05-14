@@ -5158,6 +5158,12 @@ function AUsers({ esModerador=false }) {
     setUsers(prev=>prev.map(u=>u.id===id?{...u,plan}:u));
   };
 
+  const handleCambiarRol = async (id, rol) => {
+    if (!window.confirm(`¿Cambiar rol a "${rol}"?`)) return;
+    await updateDoc(doc(db,"usuarios",id),{ rol });
+    setUsers(prev=>prev.map(u=>u.id===id?{...u,rol}:u));
+  };
+
   const filtered = users.filter(u=>
     !search || u.nombre?.toLowerCase().includes(search.toLowerCase()) || u.email?.includes(search)
   );
@@ -5183,7 +5189,17 @@ function AUsers({ esModerador=false }) {
           <Tbl headers={["Nombre","Email","Rol","Plan","Estado","Verificado","Desde","Acciones"]} rows={filtered.map(u=>[
             <span style={{ fontWeight:600 }}>{u.nombre||"—"}</span>,
             <span style={{ color:INFO, fontSize:12 }}>{esModerador ? (u.email||"—").replace(/(?<=.{3}).(?=[^@]*@)/g,"*") : u.email||"—"}</span>,
-            <Pill label={u.rol||"usuario"} color={u.rol==="tienda"?PRIMARY:INFO}/>,
+            esModerador
+              ? <Pill label={u.rol||"usuario"} color={u.rol==="moderador"?"#F59E0B":u.rol==="tienda"?PRIMARY:INFO}/>
+              : <select value={u.rol||"usuario"} onChange={e=>handleCambiarRol(u.id,e.target.value)}
+                  style={{padding:"4px 8px",borderRadius:6,border:"1.5px solid #E5E7EB",fontSize:12,
+                    fontFamily:"inherit",cursor:"pointer",fontWeight:700,
+                    background:u.rol==="moderador"?"#FFFBEB":u.rol==="tienda"?"#EFF6FF":"#F9FAFB",
+                    color:u.rol==="moderador"?"#B45309":u.rol==="tienda"?"#1D4ED8":"#6B7280"}}>
+                  <option value="usuario">👤 Usuario</option>
+                  <option value="moderador">🛡️ Moderador</option>
+                  <option value="tienda">🏪 Tienda</option>
+                </select>,
             esModerador
               ? <Pill label={u.plan||"cuarzo"} color={u.plan==="diamante"?"#7C3AED":u.plan==="esmeralda"?"#16A34A":"#6B7280"}/>
               : <select value={u.plan||"cuarzo"} onChange={e=>handleCambiarPlan(u.id,e.target.value)}
