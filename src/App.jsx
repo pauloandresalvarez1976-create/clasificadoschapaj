@@ -3123,7 +3123,7 @@ function HorarioEditor({ value, onChange }) {
 }
 
 // ── TIENDA CARD ──────────────────────────────────────────────────
-function TiendaCard({ tienda, siteWhatsapp, onVerTienda }) {
+function TiendaCard({ tienda, siteWhatsapp, onVerTienda, onVerAnunciosTienda }) {
   const [hov, setHov] = useState(false);
   const isDiamante = tienda.plan === "diamante";
 
@@ -3267,6 +3267,25 @@ function TiendaCard({ tienda, siteWhatsapp, onVerTienda }) {
               </a>
             ))}
           </div>
+        )}
+
+        {/* Ver anuncios button */}
+        {onVerAnunciosTienda && (
+          <button
+            onClick={e=>{ e.stopPropagation(); onVerAnunciosTienda(tienda); }}
+            style={{
+              width:"100%", padding:"11px", borderRadius:14, border:`2px solid ${isDiamante?"#7C3AED":"#059669"}`,
+              cursor:"pointer", background:"transparent",
+              color: isDiamante?"#7C3AED":"#059669",
+              fontWeight:800, fontSize:13, fontFamily:"inherit",
+              marginBottom:10, transition:"all .25s",
+              display:"flex", alignItems:"center", justifyContent:"center", gap:7,
+            }}
+            onMouseEnter={e=>{ e.currentTarget.style.background=isDiamante?"#F5F3FF":"#ECFDF5"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.background="transparent"; }}
+          >
+            <span style={{ fontSize:15 }}>🏷️</span> Ver anuncios de esta tienda
+          </button>
         )}
 
         {/* CTA Button */}
@@ -3865,6 +3884,8 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
 
   const [filtroPrecio, setFiltroPrecio] = React.useState(false);
   const [filtroFotos, setFiltroFotos] = React.useState(false);
+  const [filtroTiendaUid, setFiltroTiendaUid] = React.useState(null);
+  const [filtroTiendaNombre, setFiltroTiendaNombre] = React.useState("");
   const [orden, setOrden] = React.useState("recientes");
 
   const filteredAds = recentAds.filter(a=>{
@@ -3873,6 +3894,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       if(selCat && a.categoria !== selCat.name) return false;
       if(selSub && a.subcategoria !== selSub) return false;
     }
+    if(filtroTiendaUid && a.uid !== filtroTiendaUid) return false;
     if(filtroPrecio && (!a.precio || a.precio==="Consultar")) return false;
     if(filtroFotos && !a.fotoPortada) return false;
     return true;
@@ -4206,6 +4228,13 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
           <div style={{ textAlign:"center",padding:40,color:TL }}>
             <div style={{ fontSize:48,marginBottom:12 }}>🔍</div>
             <div>{search?"No se encontraron anuncios para esa búsqueda":selCat?`Todavía no hay anuncios en ${selCat.name}. ¡Sé el primero en publicar!`:(filtroPrecio||filtroFotos)?"No hay anuncios con esos filtros":"Todavía no hay anuncios. ¡Sé el primero en publicar!"}</div>
+            {filtroTiendaUid && (
+              <div style={{ display:"flex", alignItems:"center", gap:10, background:"#EEF2FF", border:"1.5px solid #818CF8", borderRadius:14, padding:"10px 16px", marginBottom:10, flexWrap:"wrap" }}>
+                <span style={{ fontSize:16 }}>🏪</span>
+                <span style={{ fontWeight:700, color:"#4F46E5", fontSize:14 }}>Mostrando anuncios de: {filtroTiendaNombre}</span>
+                <button onClick={()=>{ setFiltroTiendaUid(null); setFiltroTiendaNombre(""); }} style={{ marginLeft:"auto", background:"#4F46E5", color:"#fff", border:"none", borderRadius:10, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>✕ Quitar filtro</button>
+              </div>
+            )}
             {(selCat||filtroPrecio||filtroFotos) && <button onClick={()=>{setSelCat(null);setSelSub(null);setFiltroPrecio(false);setFiltroFotos(false);}} style={{ marginTop:14,padding:"8px 20px",borderRadius:20,background:P,color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontFamily:"inherit" }}>Limpiar filtros</button>}
           </div>
         ) : (
@@ -4313,7 +4342,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:18 }}>
                       {tiendas.filter(t=>t.plan==="diamante").map(t=>(
-                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda}/>
+                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>{ setFiltroTiendaUid(t.uid); setFiltroTiendaNombre(t.nombre); setVistaActiva("inicio"); setPagina(1); setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),200); }}/>
                       ))}
                     </div>
                   </div>
@@ -4327,7 +4356,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
                       {tiendas.filter(t=>t.plan==="esmeralda").map(t=>(
-                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda}/>
+                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>{ setFiltroTiendaUid(t.uid); setFiltroTiendaNombre(t.nombre); setVistaActiva("inicio"); setPagina(1); setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),200); }}/>
                       ))}
                     </div>
                   </div>
