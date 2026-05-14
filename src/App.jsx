@@ -265,8 +265,11 @@ function AuthModal({ onClose, onSuccess }) {
               ))}
             </div>
             {tab==="register" && (
-              <div style={{ background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1E40AF" }}>
+              <div style={{ background:"#EFF6FF",border:"1.5px solid #BFDBFE",borderRadius:8,padding:"12px 14px",marginBottom:14,fontSize:12,color:"#1E40AF" }}>
                 📧 Al registrarte te enviaremos un email para verificar tu cuenta. El badge <strong>✅ Verificado</strong> aparece una vez que confirmés tu email.
+                <div style={{ marginTop:8, background:"#FEF3C7", border:"1px solid #FCD34D", borderRadius:6, padding:"7px 10px", color:"#92400E", fontWeight:700, fontSize:12 }}>
+                  ⚠️ Si no lo encontrás en tu bandeja de entrada, <strong>revisá la carpeta SPAM o Correo No Deseado</strong>.
+                </div>
               </div>
             )}
 
@@ -7240,6 +7243,26 @@ export default function App() {
       } else { setUserData(null); }
     });
     return ()=>unsub();
+  },[]);
+
+  // Auto-verificación: cada 10s recarga el token de Firebase y actualiza Firestore si ya verificó
+  useEffect(()=>{
+    const interval = setInterval(async ()=>{
+      const u = auth.currentUser;
+      if (!u || u.emailVerified) return;
+      try {
+        await u.reload();
+        if (u.emailVerified) {
+          const q = query(collection(db,"usuarios"),where("uid","==",u.uid));
+          const snap = await getDocs(q);
+          if (!snap.empty && !snap.docs[0].data().verificado) {
+            await updateDoc(snap.docs[0].ref, { verificado: true });
+            setUserData(prev => prev ? {...prev, verificado:true} : prev);
+          }
+        }
+      } catch(e){}
+    }, 10000);
+    return ()=>clearInterval(interval);
   },[]);
 
   // Hotkey for admin
