@@ -1040,55 +1040,26 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
           </div>
 
           {/* Contacto */}
-          <div style={{ display:"flex",gap:10,marginBottom:20,flexWrap:"wrap" }}>
-            {anuncio.mostrarWA && anuncio.contactoWA && (
+          <div style={{ marginBottom:20 }}>
+            {anuncio.mostrarWA && anuncio.contactoWA ? (
               <button onClick={handleWA} style={{
-                flex:1,padding:"12px",borderRadius:10,border:"none",cursor:"pointer",
-                background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,fontFamily:"inherit"
-              }}>💬 Contactar por WhatsApp</button>
-            )}
-            {user && user.uid !== anuncio.uid ? (
-              enviado ? (
-                <Alert type="success">✅ Mensaje enviado. Revisá tu bandeja de consultas.</Alert>
-              ) : showChatBox ? (
-                <div style={{ flex:1, border:`1.5px solid ${IN}`, borderRadius:12, padding:14, background:"#EFF6FF" }}>
-                  <div style={{ fontWeight:700, color:IN, marginBottom:8, fontSize:13 }}>✉️ Mensaje para {anuncio.nombreVendedor||"el vendedor"}</div>
-                  <textarea
-                    value={mensajeTexto}
-                    onChange={e=>setMensajeTexto(e.target.value)}
-                    placeholder={`Hola, me interesa tu anuncio "${anuncio.titulo}"...`}
-                    rows={3}
-                    style={{ width:"100%", padding:"10px 12px", borderRadius:8, border:`1.5px solid ${BR}`,
-                      fontSize:13, fontFamily:"inherit", resize:"vertical", outline:"none", boxSizing:"border-box" }}
-                    onFocus={e=>e.target.style.borderColor=IN}
-                    onBlur={e=>e.target.style.borderColor=BR}
-                    autoFocus
-                  />
-                  <div style={{ display:"flex", gap:8, marginTop:8 }}>
-                    <button onClick={handleConsulta} disabled={!mensajeTexto.trim()||enviandoMsg}
-                      style={{ flex:1, padding:"10px", borderRadius:8, border:"none", cursor:mensajeTexto.trim()&&!enviandoMsg?"pointer":"not-allowed",
-                        background:mensajeTexto.trim()&&!enviandoMsg?IN:"#ccc", color:"#fff", fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
-                      {enviandoMsg ? "Enviando..." : "📨 Enviar mensaje"}
-                    </button>
-                    <button onClick={()=>{ setShowChatBox(false); setMensajeTexto(""); }}
-                      style={{ padding:"10px 16px", borderRadius:8, border:`1px solid ${BR}`, background:"transparent",
-                        cursor:"pointer", fontSize:13, color:TL, fontFamily:"inherit" }}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={()=>setShowChatBox(true)}
-                  style={{ flex:1,padding:"12px",borderRadius:10,border:"none",cursor:"pointer",
-                    background:IN,color:"#fff",fontWeight:700,fontSize:14,fontFamily:"inherit" }}>
-                  ✉️ Enviar mensaje privado
-                </button>
-              )
-            ) : !user ? (
-              <div style={{ flex:1,padding:"12px",borderRadius:10,border:`1px solid ${BR}`,textAlign:"center",fontSize:13,color:TL }}>
-                Iniciá sesión para enviar un mensaje
+                width:"100%", padding:"16px", borderRadius:12, border:"none", cursor:"pointer",
+                background:"#25D366", color:"#fff", fontWeight:800, fontSize:16, fontFamily:"inherit",
+                display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+                boxShadow:"0 4px 14px rgba(37,211,102,.35)", transition:"transform .15s,box-shadow .15s"
+              }}
+              onMouseEnter={e=>{ e.currentTarget.style.transform="scale(1.02)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(37,211,102,.45)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.transform="scale(1)"; e.currentTarget.style.boxShadow="0 4px 14px rgba(37,211,102,.35)"; }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.124 1.524 5.86L0 24l6.304-1.507A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.002-1.368l-.36-.214-3.733.892.924-3.64-.235-.374A9.818 9.818 0 1112 21.818z"/></svg>
+                Contactar por WhatsApp
+              </button>
+            ) : (
+              <div style={{ width:"100%", padding:"14px", borderRadius:12, border:`1.5px dashed ${BR}`,
+                textAlign:"center", fontSize:13, color:TL, background:SF }}>
+                Este vendedor no tiene WhatsApp publicado
               </div>
-            ) : null}
+            )}
           </div>
 
           {/* Calificar */}
@@ -2053,13 +2024,13 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
         {/* Tabs */}
         <div style={{ display:"flex",borderBottom:`1px solid ${BR}`,padding:"0 24px",overflowX:"auto",scrollbarWidth:"none" }}>
-          {(["anuncios","consultas","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>(
+          {(["anuncios","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{
               padding:"12px 14px",border:"none",background:"transparent",cursor:"pointer",
               fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
               color:tab===t?P:TM, borderBottom:`2px solid ${tab===t?P:"transparent"}`,
             }}>
-              {t==="anuncios"?"📋 Mis Anuncios":t==="consultas"?"💬 Consultas":t==="alertas"?"🔔 Alertas":t==="favoritos"?"❤️ Favoritos":t==="perfil"?"👤 Mi Perfil":t==="plan"?"💎 Mi Plan":"🏪 Mi Tienda"}
+              {t==="anuncios"?"📋 Mis Anuncios":t==="alertas"?"🔔 Alertas":t==="favoritos"?"❤️ Favoritos":t==="perfil"?"👤 Mi Perfil":t==="plan"?"💎 Mi Plan":"🏪 Mi Tienda"}
             </button>
           ))}
         </div>
@@ -2259,7 +2230,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
       {tab==="tienda" && userData?.tiendaId && <MiTiendaTab user={user} userData={userData} tiendaId={userData.tiendaId}/>}
 
       {/* ── CONSULTAS ── */}
-      {tab==="consultas" && <ConsultasTab user={user}/>}
+      
 
       {/* ── ALERTAS ── */}
       {tab==="alertas" && <AlertasTab user={user} anuncios={misAnuncios}/>}
