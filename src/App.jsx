@@ -7491,36 +7491,35 @@ export default function App() {
   const pushNav = () => history.pushState({ nav: true }, "");
 
   useEffect(()=>{
-    history.replaceState({ nav: false }, "");
+    // Metemos 3 entradas de barrera al inicio.
+    // Así aunque el navegador tenga historial previo, siempre hay entradas nuestras
+    // para capturar antes de que el usuario salga de la app.
+    history.pushState({ nav: true }, "");
+    history.pushState({ nav: true }, "");
+    history.pushState({ nav: true }, "");
 
     const handlePop = () => {
       const { selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm } = stateRef.current;
 
-      if (selAnuncio)   { setSelAnuncio(null);   return; }
-      if (selTienda)    { setSelTienda(null);     return; }
-      if (view === "admin")      { setView("front"); return; }
-      if (view === "adminLogin") { setView("front"); return; }
-      if (view === "legal" || view === "comoPublicar") { setView("front"); return; }
-      if (showMiCuenta) { setShowMiCuenta(false); return; }
-      if (showPublicar) { setShowPublicar(false); return; }
-      if (showAuth)     { setShowAuth(false);     return; }
+      if (selAnuncio)   { setSelAnuncio(null);   pushNav(); return; }
+      if (selTienda)    { setSelTienda(null);     pushNav(); return; }
+      if (view === "admin")      { setView("front"); pushNav(); return; }
+      if (view === "adminLogin") { setView("front"); pushNav(); return; }
+      if (view === "legal" || view === "comoPublicar") { setView("front"); pushNav(); return; }
+      if (showMiCuenta) { setShowMiCuenta(false); pushNav(); return; }
+      if (showPublicar) { setShowPublicar(false); pushNav(); return; }
+      if (showAuth)     { setShowAuth(false);     pushNav(); return; }
 
-      // Inicio: primer atrás muestra toast, segundo sale
-      if (!backConfirm) {
-        setBackConfirm(true);
-        pushNav();
-        clearTimeout(backConfirmTimer.current);
-        backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
-      } else {
-        clearTimeout(backConfirmTimer.current);
-        setBackConfirm(false);
-        history.go(-1);
-      }
+      // Inicio: siempre mostramos toast y reponemos barrera
+      setBackConfirm(true);
+      pushNav();
+      clearTimeout(backConfirmTimer.current);
+      backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
     };
 
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-  }, []); // se registra UNA sola vez — stateRef siempre tiene lo más reciente
+  }, []);
 
   // Helpers para abrir pantallas — hacen pushNav() ellos mismos
   const openAuth     = ()      => { pushNav(); setShowAuth(true); };
