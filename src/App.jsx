@@ -7479,6 +7479,7 @@ export default function App() {
   const [selAnuncio, setSelAnuncio] = useState(null);
   const [selTienda, setSelTienda] = useState(null);
   const [vistaActiva, setVistaActiva] = useState("inicio");
+  const backConfirmRef = useRef(false);
   const backConfirmTimer = useRef(null);
   // Ref para leer siempre el estado más reciente dentro del handler
   const stateRef = useRef({});
@@ -7491,36 +7492,37 @@ export default function App() {
   const pushNav = () => history.pushState({ nav: true }, "");
 
   useEffect(()=>{
-    // Metemos 3 entradas de barrera al inicio.
-    // Así aunque el navegador tenga historial previo, siempre hay entradas nuestras
-    // para capturar antes de que el usuario salga de la app.
-    history.pushState({ nav: true }, "");
-    history.pushState({ nav: true }, "");
+    // Empujamos UNA sola barrera. El handler la repone solo en el caso del toast.
     history.pushState({ nav: true }, "");
 
     const handlePop = () => {
-      const { selAnuncio, selTienda, vistaActiva, view, showAuth, showPublicar, showMiCuenta, backConfirm } = stateRef.current;
+      const { selAnuncio, selTienda, vistaActiva, view, showAuth, showPublicar, showMiCuenta } = stateRef.current;
 
-      if (selAnuncio)   { setSelAnuncio(null);         pushNav(); return; }
-      if (selTienda)    { setSelTienda(null);           pushNav(); return; }
-      if (vistaActiva !== "inicio") { setVistaActiva("inicio"); pushNav(); return; }
-      if (view === "admin")      { setView("front");    pushNav(); return; }
-      if (view === "adminLogin") { setView("front");    pushNav(); return; }
-      if (view === "legal" || view === "comoPublicar") { setView("front"); pushNav(); return; }
-      if (showMiCuenta) { setShowMiCuenta(false);      pushNav(); return; }
-      if (showPublicar) { setShowPublicar(false);       pushNav(); return; }
-      if (showAuth)     { setShowAuth(false);           pushNav(); return; }
+      if (selAnuncio)   { setSelAnuncio(null);   return; }
+      if (selTienda)    { setSelTienda(null);     return; }
+      if (vistaActiva !== "inicio") { setVistaActiva("inicio"); return; }
+      if (view === "admin")      { setView("front"); return; }
+      if (view === "adminLogin") { setView("front"); return; }
+      if (view === "legal" || view === "comoPublicar") { setView("front"); return; }
+      if (showMiCuenta) { setShowMiCuenta(false); return; }
+      if (showPublicar) { setShowPublicar(false); return; }
+      if (showAuth)     { setShowAuth(false);     return; }
 
-      // Inicio: primer atrás muestra toast, segundo atrás sale
-      if (!backConfirm) {
+      // Estamos en el inicio — primer atrás: toast + reponer barrera
+      if (!backConfirmRef.current) {
+        backConfirmRef.current = true;
         setBackConfirm(true);
-        pushNav();
+        history.pushState({ nav: true }, ""); // reponer barrera para el segundo atrás
         clearTimeout(backConfirmTimer.current);
-        backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
+        backConfirmTimer.current = setTimeout(()=>{
+          backConfirmRef.current = false;
+          setBackConfirm(false);
+        }, 3000);
       } else {
+        // Segundo atrás: salir de verdad
         clearTimeout(backConfirmTimer.current);
+        backConfirmRef.current = false;
         setBackConfirm(false);
-        // No hacemos pushNav — dejamos que el navegador retroceda de verdad
       }
     };
 
