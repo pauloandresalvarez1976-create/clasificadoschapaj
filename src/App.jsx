@@ -4554,6 +4554,9 @@ const ADMIN_MENU = [
   { id:"backup",     icon:"💾", label:"Backup & Log"        },
 ];
 
+// Ítems permitidos para el rol moderador
+const MODERADOR_MENU_IDS = ["dashboard","ads","users","moderation","pagos"];
+
 const INIT_CFG = {
   site: {
     name:"Clasificados Chapa J", tagline:"Los clasificados con patente sanjuanina",
@@ -5129,7 +5132,7 @@ function AAds() {
   );
 }
 
-function AUsers() {
+function AUsers({ esModerador=false }) {
   const [search,setSearch]=useState("");
   const [users,setUsers]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -5173,29 +5176,33 @@ function AUsers() {
         <div style={{ display:"flex", gap:10, marginBottom:14 }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Buscar por nombre o email..."
             style={{ flex:1, padding:"8px 13px", borderRadius:8, border:`1.5px solid ${BORDER}`, fontSize:14, fontFamily:"inherit", outline:"none", background:"#fff", color:TEXT }} />
-          <Btn size="sm" onClick={exportCSV}>📥 Exportar CSV</Btn>
+          {!esModerador && <Btn size="sm" onClick={exportCSV}>📥 Exportar CSV</Btn>}
         </div>
         {loading ? <div style={{ textAlign:"center",padding:30,color:TEXT_LIGHT }}>Cargando usuarios...</div> :
           filtered.length===0 ? <div style={{ textAlign:"center",padding:30,color:TEXT_LIGHT }}>No hay usuarios</div> :
           <Tbl headers={["Nombre","Email","Rol","Plan","Estado","Verificado","Desde","Acciones"]} rows={filtered.map(u=>[
             <span style={{ fontWeight:600 }}>{u.nombre||"—"}</span>,
-            <span style={{ color:INFO, fontSize:12 }}>{u.email||"—"}</span>,
+            <span style={{ color:INFO, fontSize:12 }}>{esModerador ? (u.email||"—").replace(/(?<=.{3}).(?=[^@]*@)/g,"*") : u.email||"—"}</span>,
             <Pill label={u.rol||"usuario"} color={u.rol==="tienda"?PRIMARY:INFO}/>,
-            <select value={u.plan||"cuarzo"} onChange={e=>handleCambiarPlan(u.id,e.target.value)}
-              style={{padding:"4px 8px",borderRadius:6,border:"1.5px solid #E5E7EB",fontSize:12,
-                fontFamily:"inherit",cursor:"pointer",fontWeight:700,
-                background:u.plan==="diamante"?"#F5F3FF":u.plan==="esmeralda"?"#F0FDF4":"#F9FAFB",
-                color:u.plan==="diamante"?"#7C3AED":u.plan==="esmeralda"?"#16A34A":"#6B7280"}}>
-              <option value="cuarzo">🪨 Cuarzo</option>
-              <option value="esmeralda">💚 Esmeralda</option>
-              <option value="diamante">💠 Diamante</option>
-            </select>,
+            esModerador
+              ? <Pill label={u.plan||"cuarzo"} color={u.plan==="diamante"?"#7C3AED":u.plan==="esmeralda"?"#16A34A":"#6B7280"}/>
+              : <select value={u.plan||"cuarzo"} onChange={e=>handleCambiarPlan(u.id,e.target.value)}
+                style={{padding:"4px 8px",borderRadius:6,border:"1.5px solid #E5E7EB",fontSize:12,
+                  fontFamily:"inherit",cursor:"pointer",fontWeight:700,
+                  background:u.plan==="diamante"?"#F5F3FF":u.plan==="esmeralda"?"#F0FDF4":"#F9FAFB",
+                  color:u.plan==="diamante"?"#7C3AED":u.plan==="esmeralda"?"#16A34A":"#6B7280"}}>
+                <option value="cuarzo">🪨 Cuarzo</option>
+                <option value="esmeralda">💚 Esmeralda</option>
+                <option value="diamante">💠 Diamante</option>
+              </select>,
             <Pill label={u.status||"activo"} color={(u.status||"activo")==="activo"?SUCCESS:DANGER}/>,
-            <span style={{ cursor:"pointer" }} title={u.verificado?"Click para quitar verificación":"Click para verificar manualmente"}
-              onClick={()=>handleVerificar(u.id,!u.verificado)}>
+            <span style={{ cursor: esModerador?"default":"pointer" }}
+              title={esModerador ? "" : u.verificado?"Click para quitar verificación":"Click para verificar manualmente"}
+              onClick={esModerador ? undefined : ()=>handleVerificar(u.id,!u.verificado)}>
               {u.verificado ? "✅ Verificado" : "❌ Sin verificar"}
             </span>,
             u.createdAt?.toDate?.()?.toLocaleDateString("es-AR")||"—",
+            esModerador ? <span style={{ color:"#9CA3AF", fontSize:12 }}>—</span> :
             <div style={{ display:"flex", gap:4 }}>
               {(u.status||"activo")==="activo"
                 ? <Btn size="sm" outline color={DANGER} onClick={()=>handleSuspend(u.id,"suspendido")}>🚫</Btn>
@@ -6534,7 +6541,7 @@ function ABackup() {
 //  ADMIN PANEL WRAPPER
 // ════════════════════════════════════════════════════════════════
 
-function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo }) {
+function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo, rol="admin" }) {
   const [active,setActive]=useState("dashboard");
   const [collapsed,setCollapsed]=useState(false);
   const [mobileOpen,setMobileOpen]=useState(false);
@@ -6579,7 +6586,7 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo }) {
     site:       <ASiteConfig cfg={cfg.site}     set={setter("site")}     onSave={()=>saveCfg("site")} onDiscard={reloadCfg}/>,
     design:     <ADesign     cfg={cfg.design}   set={setter("design")} onSave={()=>saveCfg("design")}/>,
     ads:        <AAds/>,
-    users:      <AUsers/>,
+    users:      <AUsers esModerador={rol==="moderador"}/>,
     stores:     <AStores/>,
     categories: <ACategories/>,
     pricing:    <APricing    cfg={cfg.pricing}  set={setter("pricing")} onSave={()=>saveCfg("pricing")}/>,
@@ -6602,14 +6609,14 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo }) {
       <div style={{ padding:"16px 12px", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${PRIMARY},${PRIMARY_D})`,
           display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0 }}>🚗</div>
-        {(!collapsed||isMobile) && <div style={{ color:"#fff",fontWeight:800,fontSize:12,lineHeight:1.3 }}>Panel Admin<br/><span style={{ color:PRIMARY,fontWeight:600 }}>Chapa "J"</span></div>}
+        {(!collapsed||isMobile) && <div style={{ color:"#fff",fontWeight:800,fontSize:12,lineHeight:1.3 }}>{rol==="moderador"?"Moderador":"Panel Admin"}<br/><span style={{ color:PRIMARY,fontWeight:600 }}>Chapa "J"</span></div>}
         {!isMobile && <button onClick={()=>setCollapsed(o=>!o)} style={{ marginLeft:"auto",background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:16,flexShrink:0 }}>
           {collapsed?"▶":"◀"}
         </button>}
         {isMobile && <button onClick={()=>setMobileOpen(false)} style={{ marginLeft:"auto",background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:20 }}>✕</button>}
       </div>
       <nav style={{ flex:1, padding:"10px 0", overflowY:"auto" }}>
-        {ADMIN_MENU.map(item=>{
+        {(rol==="moderador" ? ADMIN_MENU.filter(i=>MODERADOR_MENU_IDS.includes(i.id)) : ADMIN_MENU).map(item=>{
           const isA=active===item.id;
           return (
             <button key={item.id} onClick={()=>{ setActive(item.id); if(isMobile) setMobileOpen(false); }} style={{
@@ -6711,7 +6718,7 @@ const ADMIN_UID = "QbAM2F4oh6NPYy38ZD9DhRVId622";
 const ADMIN_MAX_ATTEMPTS = 3;
 const ADMIN_LOCK_MINS = 15;
 
-function AdminLogin({ onSuccess, onCancel }) {
+function AdminLogin({ onSuccess, onCancel }) { // onSuccess(rol)
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -6734,12 +6741,14 @@ function AdminLogin({ onSuccess, onCancel }) {
     setLoading(true); setError("");
     try {
       const cred = await signInWithEmailAndPassword(auth, email, pass);
-      // Verificar que sea el usuario admin
-      if (cred.user.uid !== ADMIN_UID) {
+      // Verificar que sea admin o moderador
+      const uSnap = await getDocs(query(collection(db,"usuarios"),where("uid","==",cred.user.uid)));
+      const uData = uSnap.empty ? null : uSnap.docs[0].data();
+      if (cred.user.uid !== ADMIN_UID && uData?.rol !== "moderador") {
         await signOut(auth);
         throw new Error("No autorizado");
       }
-      onSuccess();
+      onSuccess(uData?.rol === "moderador" ? "moderador" : "admin");
     } catch(e) {
       const n = attempts+1; setAttempts(n);
       setShake(true); setTimeout(()=>setShake(false),400);
@@ -7187,6 +7196,7 @@ function LegalView({ onVolver, initialTab="terminos" }) {
 // ── ROOT ─────────────────────────────────────────────────────────
 export default function App() {
   const [view, setView] = useState("front");
+  const [adminRol, setAdminRol] = useState("admin");
   const [legalTab, setLegalTab] = useState("terminos");
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -7263,11 +7273,11 @@ export default function App() {
       )}
 
       {view==="adminLogin" && (
-        <AdminLogin onSuccess={()=>setView("admin")} onCancel={()=>setView("front")}/>
+        <AdminLogin onSuccess={(rol)=>{ setAdminRol(rol||"admin"); setView("admin"); }} onCancel={()=>setView("front")}/>
       )}
 
       {view==="admin" && (
-        <AdminPanel onExit={()=>setView("front")} combo="Ctrl+Shift+A"/>
+        <AdminPanel onExit={()=>setView("front")} combo="Ctrl+Shift+A" rol={adminRol}/>
       )}
 
       {showAuth && (
