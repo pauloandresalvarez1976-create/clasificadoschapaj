@@ -1062,35 +1062,46 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
             )}
           </div>
 
-          {/* Rating existente del vendedor */}
-          {anuncio.vendedorRating>0 && (
-            <div style={{ display:"flex",alignItems:"center",gap:8,padding:"12px 0",borderTop:`1px solid ${BR}` }}>
-              <div style={{ display:"flex",gap:2 }}>
+          {/* Calificar - siempre visible */}
+          <div style={{ borderTop:`1px solid ${BR}`,paddingTop:16,marginTop:4 }}>
+            <div style={{ fontWeight:700,marginBottom:8,color:AC,fontSize:14 }}>
+              ⭐ {anuncio.esComercio ? "Calificar este comercio" : "Calificar a este vendedor"}
+            </div>
+            {/* Estrellas: si ya tiene rating mostrar promedio, sino mostrar interactivas o vacías */}
+            {anuncio.vendedorRating>0 && (
+              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
                 {[1,2,3,4,5].map(i=>(
-                  <span key={i} style={{ fontSize:18, color:i<=Math.round(anuncio.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>
+                  <span key={i} style={{ fontSize:20, color:i<=Math.round(anuncio.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>
                 ))}
+                <span style={{ fontSize:13,fontWeight:700,color:TX }}>{anuncio.vendedorRating.toFixed(1)}</span>
+                <span style={{ fontSize:11,color:TL }}>promedio</span>
               </div>
-              <span style={{ fontSize:13,fontWeight:700,color:TX }}>{anuncio.vendedorRating.toFixed(1)}</span>
-              <span style={{ fontSize:12,color:TL }}>
-                {anuncio.esComercio ? "Calificación del comercio" : "Calificación del vendedor"}
-              </span>
-            </div>
-          )}
-
-          {/* Calificar */}
-          {user && user.uid!==anuncio.uid && !calificado && (
-            <div style={{ borderTop:`1px solid ${BR}`,paddingTop:16 }}>
-              <div style={{ fontWeight:700,marginBottom:10,color:AC }}>
-                ⭐ {anuncio.esComercio ? "Calificar este comercio" : "Calificar a este vendedor"}
+            )}
+            {/* Formulario solo si está logueado, no es el dueño y no calificó */}
+            {!calificado && user && user.uid!==anuncio.uid ? (
+              <>
+                <StarRating value={rating} onChange={setRating}/>
+                {rating>0 && <>
+                  <Txta label="" value={comentario} onChange={setComentario} rows={2} placeholder="Comentario opcional..."/>
+                  <Btn size="sm" onClick={handleCalificar}>Enviar calificación</Btn>
+                </>}
+              </>
+            ) : calificado ? (
+              <Alert type="success">✅ ¡Gracias por tu calificación!</Alert>
+            ) : !user ? (
+              <div style={{ fontSize:12,color:TL,fontStyle:"italic" }}>
+                <StarRating value={0} readonly/>
+                <div style={{ marginTop:4 }}>Iniciá sesión para calificar</div>
               </div>
-              <StarRating value={rating} onChange={setRating}/>
-              {rating>0 && <>
-                <Txta label="" value={comentario} onChange={setComentario} rows={2} placeholder="Comentario opcional..."/>
-                <Btn size="sm" onClick={handleCalificar}>Enviar calificación</Btn>
-              </>}
-            </div>
-          )}
-          {calificado && <Alert type="success">✅ ¡Gracias por tu calificación!</Alert>}
+            ) : (
+              <div style={{ fontSize:12,color:TL,fontStyle:"italic" }}>
+                {anuncio.vendedorRating>0
+                  ? null
+                  : <><StarRating value={0} readonly/><div style={{ marginTop:4 }}>Aún sin calificaciones</div></>
+                }
+              </div>
+            )}
+          </div>
           </div>{/* end content card */}
         </div>{/* end grid */}
       </div>{/* end maxWidth container */}
