@@ -852,6 +852,9 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
   const [fotoIdx, setFotoIdx] = useState(0);
   const [consulta, setConsulta] = useState("");
   const [enviado, setEnviado] = useState(false);
+  const [showChatBox, setShowChatBox] = useState(false);
+  const [mensajeTexto, setMensajeTexto] = useState("");
+  const [enviandoMsg, setEnviandoMsg] = useState(false);
   const [rating, setRating] = useState(0);
   const [comentario, setComentario] = useState("");
   const [calificado, setCalificado] = useState(false);
@@ -871,42 +874,45 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
   useEffect(()=>{ updateDoc(doc(db,"anuncios",anuncio.id),{vistas:increment(1)}); },[]);
 
   const handleConsulta = async () => {
-    if (!user) return;
-    // Buscar conversación existente entre estos dos usuarios sobre este anuncio
-    const convId = [user.uid, anuncio.uid].sort().join("_") + "_" + anuncio.id;
-    const convRef = doc(db, "conversaciones", convId);
-    const convSnap = await getDoc(convRef);
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participantes: [user.uid, anuncio.uid],
-        nombres: {
-          [user.uid]: user.displayName || "Usuario",
-          [anuncio.uid]: anuncio.nombreVendedor || "Vendedor",
-        },
-        anuncioId: anuncio.id,
-        anuncioTitulo: anuncio.titulo,
-        ultimoMsg: "Conversación iniciada",
-        updatedAt: serverTimestamp(),
-        [`unread_${anuncio.uid}`]: 1,
-        [`unread_${user.uid}`]: 0,
+    if (!user || !mensajeTexto.trim()) return;
+    setEnviandoMsg(true);
+    try {
+      const convId = [user.uid, anuncio.uid].sort().join("_") + "_" + anuncio.id;
+      const convRef = doc(db, "conversaciones", convId);
+      const convSnap = await getDoc(convRef);
+      if (!convSnap.exists()) {
+        await setDoc(convRef, {
+          participantes: [user.uid, anuncio.uid],
+          nombres: {
+            [user.uid]: user.displayName || "Usuario",
+            [anuncio.uid]: anuncio.nombreVendedor || "Vendedor",
+          },
+          anuncioId: anuncio.id,
+          anuncioTitulo: anuncio.titulo,
+          ultimoMsg: mensajeTexto.trim(),
+          updatedAt: serverTimestamp(),
+          [`unread_${anuncio.uid}`]: 1,
+          [`unread_${user.uid}`]: 0,
+        });
+      }
+      await addDoc(collection(db, "conversaciones", convId, "mensajes"), {
+        emisorUid: user.uid,
+        emisorNombre: user.displayName || "Usuario",
+        receptorUid: anuncio.uid,
+        texto: mensajeTexto.trim(),
+        leido: false,
+        editado: false,
+        createdAt: serverTimestamp(),
       });
-    }
-    // Agregar mensaje de inicio
-    await addDoc(collection(db, "conversaciones", convId, "mensajes"), {
-      emisorUid: user.uid,
-      emisorNombre: user.displayName || "Usuario",
-      receptorUid: anuncio.uid,
-      texto: `Hola, me interesa tu anuncio: "${anuncio.titulo}"`,
-      leido: false,
-      editado: false,
-      createdAt: serverTimestamp(),
-    });
-    await updateDoc(convRef, {
-      ultimoMsg: `Hola, me interesa tu anuncio: "${anuncio.titulo}"`,
-      updatedAt: serverTimestamp(),
-      [`unread_${anuncio.uid}`]: increment(1),
-    });
-    setEnviado(true);
+      await updateDoc(convRef, {
+        ultimoMsg: mensajeTexto.trim(),
+        updatedAt: serverTimestamp(),
+        [`unread_${anuncio.uid}`]: increment(1),
+      });
+      setEnviado(true);
+      setShowChatBox(false);
+    } catch(e){ console.error(e); }
+    setEnviandoMsg(false);
   };
 
   const handleWA = () => {
@@ -1043,9 +1049,36 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
             )}
             {user && user.uid !== anuncio.uid ? (
               enviado ? (
-                <Alert type="success">✅ Mensaje enviado. Revisá tu bandeja de mensajes.</Alert>
+                <Alert type="success">✅ Mensaje enviado. Revisá tu bandeja de consultas.</Alert>
+              ) : showChatBox ? (
+                <div style={{ flex:1, border:`1.5px solid ${IN}`, borderRadius:12, padding:14, background:"#EFF6FF" }}>
+                  <div style={{ fontWeight:700, color:IN, marginBottom:8, fontSize:13 }}>✉️ Mensaje para {anuncio.nombreVendedor||"el vendedor"}</div>
+                  <textarea
+                    value={mensajeTexto}
+                    onChange={e=>setMensajeTexto(e.target.value)}
+                    placeholder={`Hola, me interesa tu anuncio "${anuncio.titulo}"...`}
+                    rows={3}
+                    style={{ width:"100%", padding:"10px 12px", borderRadius:8, border:`1.5px solid ${BR}`,
+                      fontSize:13, fontFamily:"inherit", resize:"vertical", outline:"none", boxSizing:"border-box" }}
+                    onFocus={e=>e.target.style.borderColor=IN}
+                    onBlur={e=>e.target.style.borderColor=BR}
+                    autoFocus
+                  />
+                  <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                    <button onClick={handleConsulta} disabled={!mensajeTexto.trim()||enviandoMsg}
+                      style={{ flex:1, padding:"10px", borderRadius:8, border:"none", cursor:mensajeTexto.trim()&&!enviandoMsg?"pointer":"not-allowed",
+                        background:mensajeTexto.trim()&&!enviandoMsg?IN:"#ccc", color:"#fff", fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
+                      {enviandoMsg ? "Enviando..." : "📨 Enviar mensaje"}
+                    </button>
+                    <button onClick={()=>{ setShowChatBox(false); setMensajeTexto(""); }}
+                      style={{ padding:"10px 16px", borderRadius:8, border:`1px solid ${BR}`, background:"transparent",
+                        cursor:"pointer", fontSize:13, color:TL, fontFamily:"inherit" }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <button onClick={handleConsulta}
+                <button onClick={()=>setShowChatBox(true)}
                   style={{ flex:1,padding:"12px",borderRadius:10,border:"none",cursor:"pointer",
                     background:IN,color:"#fff",fontWeight:700,fontSize:14,fontFamily:"inherit" }}>
                   ✉️ Enviar mensaje privado
