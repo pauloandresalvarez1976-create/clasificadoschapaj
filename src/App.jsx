@@ -3791,18 +3791,19 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       }
     }).catch(()=>{ window.__CATS__ = DEFAULT_CATS; });
 
-    // Contador de mensajes no leídos (solo si hay usuario)
+    // Contador de mensajes no leídos (solo si hay usuario autenticado)
     if (user?.uid) {
-      const qConvs = query(
-        collection(db,"conversaciones"),
-        where("participantes","array-contains",user.uid)
-      );
-      const unsubMsgs = onSnapshot(qConvs, snap => {
-        const total = snap.docs.reduce((acc,d) => acc + (d.data()[`unread_${user.uid}`]||0), 0);
-        setUnreadMsgs(total);
-      });
-      // Store unsub for cleanup — attach to window temporarily
-      window.__unsubMsgs__ = unsubMsgs;
+      try {
+        const qConvs = query(
+          collection(db,"conversaciones"),
+          where("participantes","array-contains",user.uid)
+        );
+        const unsubMsgs = onSnapshot(qConvs, snap => {
+          const total = snap.docs.reduce((acc,d) => acc + (d.data()[`unread_${user.uid}`]||0), 0);
+          setUnreadMsgs(total);
+        }, ()=>{}); // silenciar errores de permisos
+        window.__unsubMsgs__ = unsubMsgs;
+      } catch(e){}
     }
 
     getDocs(query(collection(db,"banners"),where("active","==",true)))
