@@ -7483,7 +7483,65 @@ export default function App() {
   const [showMiCuenta, setShowMiCuenta] = useState(false);
   const [miCuentaTab, setMiCuentaTab] = useState("anuncios");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [backConfirm, setBackConfirm] = useState(false);
+  const backConfirmTimer = useRef(null);
   const keysHeld = useState(new Set())[0];
+
+  // ── MANEJO BOTÓN ATRÁS (móvil) ───────────────────────────────
+  // Cada vez que se abre una pantalla/modal, empujamos una entrada al historial.
+  // Al presionar atrás, popstate la captura y cierra el modal en lugar de salir.
+  useEffect(()=>{
+    // Estado inicial: una entrada "base" en el historial
+    history.replaceState({ level: 0 }, "");
+  }, []);
+
+  // Empujar entrada cuando se abre algo
+  useEffect(()=>{
+    const level =
+      view === "admin" ? 3 :
+      view === "adminLogin" ? 2 :
+      view === "legal" || view === "comoPublicar" ? 1 :
+      showMiCuenta ? 1 :
+      showPublicar ? 1 :
+      showAuth ? 1 : 0;
+
+    if (level > 0) {
+      history.pushState({ level }, "");
+    }
+  }, [view, showAuth, showPublicar, showMiCuenta]);
+
+  // Escuchar el evento popstate (botón atrás)
+  useEffect(()=>{
+    const handlePop = (e) => {
+      const level = e.state?.level ?? 0;
+
+      // Cerrar en orden: el modal más reciente primero
+      if (view === "admin") { setView("front"); return; }
+      if (view === "adminLogin") { setView("front"); return; }
+      if (view === "legal" || view === "comoPublicar") { setView("front"); return; }
+      if (showMiCuenta) { setShowMiCuenta(false); return; }
+      if (showPublicar) { setShowPublicar(false); return; }
+      if (showAuth) { setShowAuth(false); return; }
+
+      // Estamos en el inicio — primer atrás: mostrar aviso
+      if (!backConfirm) {
+        setBackConfirm(true);
+        // Volver a empujar para que el próximo atrás también lo capturemos
+        history.pushState({ level: 0 }, "");
+        // Auto-ocultar el aviso a los 3 segundos
+        clearTimeout(backConfirmTimer.current);
+        backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
+      } else {
+        // Segundo atrás: salir de verdad
+        clearTimeout(backConfirmTimer.current);
+        setBackConfirm(false);
+        history.back();
+      }
+    };
+
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [view, showAuth, showPublicar, showMiCuenta, backConfirm]);
 
   useEffect(()=>{
     const unsub = onAuthStateChanged(auth, async u=>{
@@ -7550,6 +7608,7 @@ export default function App() {
         ::-webkit-scrollbar-thumb:hover{background:#888;}
         ::-webkit-scrollbar-thumb:active{background:#FF6B2B;}
         html{scrollbar-width:thin;scrollbar-color:#B0B0B0 #F1F1F1;}
+        @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
       `}</style>
 
       {view==="front" && (
@@ -7596,6 +7655,20 @@ export default function App() {
       {showSuccess && (
         <div style={{ position:"fixed",bottom:24,right:24,zIndex:500,background:OK,color:"#fff",padding:"14px 20px",borderRadius:12,fontWeight:700,fontSize:14,boxShadow:"0 8px 24px rgba(0,0,0,.2)",fontFamily:"Nunito,sans-serif" }}>
           ✅ ¡Listo! Todo guardado correctamente
+        </div>
+      )}
+
+      {/* Toast: confirmación salir */}
+      {backConfirm && (
+        <div style={{
+          position:"fixed", bottom:32, left:"50%", transform:"translateX(-50%)",
+          zIndex:9999, background:"rgba(26,26,46,0.95)", color:"#fff",
+          padding:"14px 24px", borderRadius:16, fontWeight:700, fontSize:14,
+          fontFamily:"Nunito,sans-serif", boxShadow:"0 8px 32px rgba(0,0,0,.35)",
+          whiteSpace:"nowrap", pointerEvents:"none",
+          animation:"fadeInUp .2s ease",
+        }}>
+          Presioná atrás de nuevo para salir
         </div>
       )}
 
