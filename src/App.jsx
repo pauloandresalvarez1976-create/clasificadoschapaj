@@ -616,467 +616,6 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
 }
 
 // ── AD DETAIL ────────────────────────────────────────────────────
-// ── MENSAJERÍA PRIVADA ───────────────────────────────────────────
-function MensajesModal({ user, onClose }) {
-  const [convs, setConvs] = useState([]);
-  const [selConv, setSelConv] = useState(null);
-  const [mensajes, setMensajes] = useState([]);
-  const [texto, setTexto] = useState("");
-  const [editandoId, setEditandoId] = useState(null);
-  const [editTexto, setEditTexto] = useState("");
-  const [loading, setLoading] = useState(true);
-  const bottomRef = useRef(null);
-
-  // Cargar conversaciones del usuario
-  useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(db, "conversaciones"),
-      where("participantes", "array-contains", user.uid),
-      orderBy("updatedAt", "desc")
-    );
-    const unsub = onSnapshot(q, snap => {
-      setConvs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [user]);
-
-  // Cargar mensajes de la conversación seleccionada
-  useEffect(() => {
-    if (!selConv) return;
-    const q = query(
-      collection(db, "conversaciones", selConv.id, "mensajes"),
-      orderBy("createdAt", "asc")
-    );
-    const unsub = onSnapshot(q, snap => {
-      setMensajes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      // Marcar como leídos
-      snap.docs.forEach(d => {
-        if (d.data().receptorUid === user.uid && !d.data().leido) {
-          updateDoc(doc(db, "conversaciones", selConv.id, "mensajes", d.id), { leido: true });
-        }
-      });
-      // Reset unread en la conversación
-      updateDoc(doc(db, "conversaciones", selConv.id), {
-        [`unread_${user.uid}`]: 0
-      }).catch(() => {});
-    });
-    return () => unsub();
-  }, [selConv]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensajes]);
-
-  const enviarMensaje = async () => {
-    if (!texto.trim() || !selConv) return;
-    const otroUid = selConv.participantes.find(p => p !== user.uid);
-    await addDoc(collection(db, "conversaciones", selConv.id, "mensajes"), {
-      emisorUid: user.uid,
-      emisorNombre: user.displayName || "Usuario",
-      receptorUid: otroUid,
-      texto: texto.trim(),
-      leido: false,
-      editado: false,
-      createdAt: serverTimestamp(),
-    });
-    await updateDoc(doc(db, "conversaciones", selConv.id), {
-      updatedAt: serverTimestamp(),
-      ultimoMsg: texto.trim(),
-      [`unread_${otroUid}`]: increment(1),
-    });
-    setTexto("");
-  };
-
-  const editarMensaje = async (msgId) => {
-    if (!editTexto.trim()) return;
-    await updateDoc(doc(db, "conversaciones", selConv.id, "mensajes", msgId), {
-      texto: editTexto.trim(),
-      editado: true,
-    });
-    setEditandoId(null);
-    setEditTexto("");
-  };
-
-  const eliminarMensaje = async (msg) => {
-    // Solo el receptor puede eliminar lo que recibió
-    if (msg.receptorUid !== user.uid) return;
-    await deleteDoc(doc(db, "conversaciones", selConv.id, "mensajes", msg.id));
-  };
-
-  const otroNombre = (conv) => {
-    if (!conv) return "";
-    const otroUid = conv.participantes.find(p => p !== user.uid);
-    return conv.nombres?.[otroUid] || "Usuario";
-  };
-
-  const unreadConv = (conv) => conv[`unread_${user.uid}`] || 0;
-
-  return (
-    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
-      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:820,height:"85vh",
-        display:"flex",flexDirection:"column",boxShadow:"0 24px 80px rgba(0,0,0,.3)",overflow:"hidden" }}
-        onClick={e=>e.stopPropagation()}>
-
-        {/* Header */}
-        <div style={{ background:AC,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-            {selConv && (
-              <button onClick={()=>{ setSelConv(null); setMensajes([]); }} style={{ background:"none",border:"none",color:"rgba(255,255,255,.7)",cursor:"pointer",fontSize:20,padding:"0 8px 0 0" }}>←</button>
-            )}
-            <span style={{ color:"#fff",fontWeight:800,fontSize:16 }}>
-              {selConv ? `✉️ ${otroNombre(selConv)}` : "✉️ Mensajes"}
-            </span>
-          </div>
-          <button onClick={onClose} style={{ background:"none",border:`1px solid rgba(255,255,255,.3)`,color:"rgba(255,255,255,.7)",padding:"4px 12px",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13 }}>✕ Cerrar</button>
-        </div>
-
-        {!selConv ? (
-          /* Lista de conversaciones */
-          <div style={{ flex:1,overflowY:"auto",padding:16 }}>
-            {loading && <Spinner/>}
-            {!loading && convs.length===0 && (
-              <div style={{ textAlign:"center",padding:60,color:TL }}>
-                <div style={{ fontSize:48,marginBottom:12 }}>✉️</div>
-                <div style={{ fontWeight:700,fontSize:16,marginBottom:6 }}>No tenés mensajes</div>
-                <div style={{ fontSize:13 }}>Cuando contactes a un vendedor o te contacten, aparecerá acá.</div>
-              </div>
-            )}
-            {convs.map(conv => {
-              const unread = unreadConv(conv);
-              return (
-                <div key={conv.id} onClick={()=>setSelConv(conv)}
-                  style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,
-                    cursor:"pointer",border:`1.5px solid ${unread>0?P:BR}`,marginBottom:8,
-                    background:unread>0?"#FFF7F5":SF,transition:"all .15s" }}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor=P}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor=unread>0?P:BR}>
-                  <div style={{ width:44,height:44,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:18,flexShrink:0 }}>
-                    {otroNombre(conv)[0]?.toUpperCase()||"?"}
-                  </div>
-                  <div style={{ flex:1,minWidth:0 }}>
-                    <div style={{ fontWeight:700,color:TX,fontSize:14 }}>{otroNombre(conv)}</div>
-                    <div style={{ fontSize:12,color:TL,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{conv.ultimoMsg||"..."}</div>
-                    {conv.anuncioTitulo && <div style={{ fontSize:11,color:P,marginTop:2 }}>📦 {conv.anuncioTitulo}</div>}
-                  </div>
-                  {unread>0 && (
-                    <span style={{ background:"#EF4444",color:"#fff",borderRadius:"50%",minWidth:22,height:22,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                      {unread>9?"9+":unread}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Chat */
-          <div style={{ flex:1,display:"flex",flexDirection:"column",minHeight:0 }}>
-            {/* Mensajes */}
-            <div style={{ flex:1,overflowY:"auto",padding:"16px 20px",display:"flex",flexDirection:"column",gap:8 }}>
-              {mensajes.length===0 && (
-                <div style={{ textAlign:"center",color:TL,fontSize:13,margin:"auto" }}>
-                  Todavía no hay mensajes. ¡Mandá el primero!
-                </div>
-              )}
-              {mensajes.map(msg => {
-                const esMio = msg.emisorUid === user.uid;
-                return (
-                  <div key={msg.id} style={{ display:"flex",flexDirection:"column",alignItems:esMio?"flex-end":"flex-start" }}>
-                    {editandoId===msg.id ? (
-                      <div style={{ display:"flex",gap:6,maxWidth:"72%",width:"100%" }}>
-                        <input value={editTexto} onChange={e=>setEditTexto(e.target.value)}
-                          onKeyDown={e=>{ if(e.key==="Enter") editarMensaje(msg.id); if(e.key==="Escape"){setEditandoId(null);} }}
-                          style={{ flex:1,padding:"8px 12px",borderRadius:10,border:`2px solid ${P}`,fontSize:13,fontFamily:"inherit",outline:"none" }}
-                          autoFocus/>
-                        <button onClick={()=>editarMensaje(msg.id)} style={{ padding:"6px 12px",background:OK,color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:12 }}>✓</button>
-                        <button onClick={()=>setEditandoId(null)} style={{ padding:"6px 10px",background:BG,color:TM,border:`1px solid ${BR}`,borderRadius:8,cursor:"pointer",fontSize:12 }}>✕</button>
-                      </div>
-                    ) : (
-                      <div style={{ maxWidth:"72%",background:esMio?AC:BG,color:esMio?"#fff":TX,
-                        padding:"10px 14px",borderRadius:esMio?"16px 16px 4px 16px":"16px 16px 16px 4px",
-                        fontSize:14,lineHeight:1.5,position:"relative" }}>
-                        {msg.texto}
-                        {msg.editado && <span style={{ fontSize:10,opacity:.6,marginLeft:6 }}>(editado)</span>}
-                        <div style={{ fontSize:10,opacity:.6,marginTop:4,textAlign:esMio?"right":"left" }}>
-                          {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : ""}
-                          {esMio && <span style={{ marginLeft:4 }}>{msg.leido?"✓✓":"✓"}</span>}
-                        </div>
-                      </div>
-                    )}
-                    {/* Acciones */}
-                    <div style={{ display:"flex",gap:4,marginTop:2 }}>
-                      {esMio && editandoId!==msg.id && (
-                        <button onClick={()=>{ setEditandoId(msg.id); setEditTexto(msg.texto); }}
-                          style={{ fontSize:10,color:TL,background:"none",border:"none",cursor:"pointer",padding:"2px 6px",borderRadius:4 }}>
-                          ✏️ Editar
-                        </button>
-                      )}
-                      {!esMio && (
-                        <button onClick={()=>eliminarMensaje(msg)}
-                          style={{ fontSize:10,color:"#EF4444",background:"none",border:"none",cursor:"pointer",padding:"2px 6px",borderRadius:4 }}>
-                          🗑️ Eliminar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={bottomRef}/>
-            </div>
-
-            {/* Input */}
-            <div style={{ padding:"12px 16px",borderTop:`1px solid ${BR}`,display:"flex",gap:8,flexShrink:0 }}>
-              <input value={texto} onChange={e=>setTexto(e.target.value)}
-                onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviarMensaje();} }}
-                placeholder="Escribí un mensaje... (Enter para enviar)"
-                style={{ flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${BR}`,
-                  fontSize:14,fontFamily:"inherit",outline:"none" }}
-                onFocus={e=>e.target.style.borderColor=P} onBlur={e=>e.target.style.borderColor=BR}
-              />
-              <button onClick={enviarMensaje} disabled={!texto.trim()}
-                style={{ padding:"10px 20px",background:texto.trim()?AC:"#ccc",color:"#fff",border:"none",
-                  borderRadius:10,cursor:texto.trim()?"pointer":"not-allowed",fontWeight:700,fontSize:14,transition:"background .2s" }}>
-                Enviar
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AnuncioDetalle({ anuncio, onClose, user }) {
-  const [fotoIdx, setFotoIdx] = useState(0);
-  const [consulta, setConsulta] = useState("");
-  const [enviado, setEnviado] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [comentario, setComentario] = useState("");
-  const [calificado, setCalificado] = useState(false);
-
-  // Pantalla completa — push history para que "atrás" lo cierre
-  useEffect(()=>{
-    window.history.pushState({ anuncioDetalle: true }, "");
-    const handlePop = () => onClose();
-    window.addEventListener("popstate", handlePop);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("popstate", handlePop);
-      document.body.style.overflow = "";
-    };
-  },[]);
-
-  useEffect(()=>{ updateDoc(doc(db,"anuncios",anuncio.id),{vistas:increment(1)}); },[]);
-
-  const handleConsulta = async () => {
-    if (!user) return;
-    // Buscar conversación existente entre estos dos usuarios sobre este anuncio
-    const convId = [user.uid, anuncio.uid].sort().join("_") + "_" + anuncio.id;
-    const convRef = doc(db, "conversaciones", convId);
-    const convSnap = await getDoc(convRef);
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participantes: [user.uid, anuncio.uid],
-        nombres: {
-          [user.uid]: user.displayName || "Usuario",
-          [anuncio.uid]: anuncio.nombreVendedor || "Vendedor",
-        },
-        anuncioId: anuncio.id,
-        anuncioTitulo: anuncio.titulo,
-        ultimoMsg: "Conversación iniciada",
-        updatedAt: serverTimestamp(),
-        [`unread_${anuncio.uid}`]: 1,
-        [`unread_${user.uid}`]: 0,
-      });
-    }
-    // Agregar mensaje de inicio
-    await addDoc(collection(db, "conversaciones", convId, "mensajes"), {
-      emisorUid: user.uid,
-      emisorNombre: user.displayName || "Usuario",
-      receptorUid: anuncio.uid,
-      texto: `Hola, me interesa tu anuncio: "${anuncio.titulo}"`,
-      leido: false,
-      editado: false,
-      createdAt: serverTimestamp(),
-    });
-    await updateDoc(convRef, {
-      ultimoMsg: `Hola, me interesa tu anuncio: "${anuncio.titulo}"`,
-      updatedAt: serverTimestamp(),
-      [`unread_${anuncio.uid}`]: increment(1),
-    });
-    setEnviado(true);
-  };
-
-  const handleWA = () => {
-    const num = `549${anuncio.contactoWA}`;
-    const msg = encodeURIComponent(`Hola! Vi tu anuncio "${anuncio.titulo}" en Clasificados Chapa J y me interesa. ¿Está disponible?`);
-    window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
-  };
-
-  const handleCalificar = async () => {
-    if (!user||!rating) return;
-    await addDoc(collection(db,"calificaciones"),{
-      anuncioId:anuncio.id, vendedorUid:anuncio.uid,
-      compradorUid:user.uid, puntos:rating, comentario, createdAt:serverTimestamp()
-    });
-    setCalificado(true);
-  };
-
-  const fotos = anuncio.fotos||[];
-
-  return (
-    <div style={{ position:"fixed",inset:0,zIndex:200,background:BG,overflowY:"auto",fontFamily:"Nunito,sans-serif" }}>
-
-      {/* Barra superior */}
-      <div style={{ position:"sticky",top:0,zIndex:10,background:SF,borderBottom:`1px solid ${BR}`,
-        padding:"12px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
-        <button onClick={onClose}
-          style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:10,
-            border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontFamily:"inherit",
-            fontSize:13,fontWeight:700,color:TM }}>
-          ← Volver
-        </button>
-        <div style={{ flex:1,minWidth:0 }}>
-          <div style={{ fontWeight:700,fontSize:14,color:TX,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{anuncio.titulo}</div>
-          <div style={{ fontSize:12,color:TL }}>{anuncio.categoria}{anuncio.subcategoria?` · ${anuncio.subcategoria}`:""}{anuncio.localidad?` · ${anuncio.localidad}`:""}</div>
-        </div>
-        <div onClick={e=>e.stopPropagation()}>
-          <FavBtn adId={anuncio.id}/>
-        </div>
-        <button onClick={onClose}
-          style={{ width:34,height:34,borderRadius:"50%",background:BG,border:`1.5px solid ${BR}`,
-            display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",
-            fontSize:16,color:TL,flexShrink:0,transition:"all .2s" }}
-          onMouseEnter={e=>{e.currentTarget.style.background=ER;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=ER;}}
-          onMouseLeave={e=>{e.currentTarget.style.background=BG;e.currentTarget.style.color=TL;e.currentTarget.style.borderColor=BR;}}>
-          ✕
-        </button>
-      </div>
-
-      <div style={{ maxWidth:860,margin:"0 auto",padding:"24px 20px 60px" }}>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr",gap:20 }}>
-
-          {/* Fotos */}
-          <div style={{ background:SF,borderRadius:16,overflow:"hidden",border:`1px solid ${BR}` }}>
-            <div style={{ position:"relative",background:BG,height:360 }}>
-          {fotos.length>0 ? (
-            <>
-              <img src={fotos[fotoIdx]} style={{ width:"100%",height:"100%",objectFit:"contain" }}/>
-              {fotos.length>1 && (
-                <>
-                  <button onClick={()=>setFotoIdx(i=>(i-1+fotos.length)%fotos.length)}
-                    style={{ position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:36,height:36,cursor:"pointer",fontSize:18 }}>‹</button>
-                  <button onClick={()=>setFotoIdx(i=>(i+1)%fotos.length)}
-                    style={{ position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:36,height:36,cursor:"pointer",fontSize:18 }}>›</button>
-                  <div style={{ position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6 }}>
-                    {fotos.map((_,i)=><div key={i} onClick={()=>setFotoIdx(i)} style={{ width:8,height:8,borderRadius:"50%",background:i===fotoIdx?"#fff":"rgba(255,255,255,.5)",cursor:"pointer" }}/>)}
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:64 }}>🖼️</div>
-          )}
-          {anuncio.plan&&anuncio.plan!=="cuarzo" && <div style={{ position:"absolute",top:12,left:12 }}><AdBadge type={anuncio.plan.toUpperCase()}/></div>}
-            </div>{/* end foto relative */}
-
-            {/* Miniaturas */}
-            {fotos.length>1 && (
-              <div style={{ display:"flex",gap:6,padding:"10px 12px",overflowX:"auto" }}>
-                {fotos.map((f,i)=>(
-                  <img key={i} src={f} onClick={()=>setFotoIdx(i)}
-                    style={{ width:56,height:56,objectFit:"cover",borderRadius:8,cursor:"pointer",
-                      border:`2px solid ${i===fotoIdx?P:BR}`,flexShrink:0 }}/>
-                ))}
-              </div>
-            )}
-          </div>{/* end foto card */}
-          <div style={{ background:SF,borderRadius:16,padding:24,border:`1px solid ${BR}` }}>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:16,marginBottom:20 }}>
-            <div>
-              <div style={{ fontSize:12,color:P,fontWeight:600,marginBottom:4 }}>
-                {anuncio.categoria} {anuncio.subcategoria?`· ${anuncio.subcategoria}`:""} · {anuncio.localidad}
-              </div>
-              <h2 style={{ fontSize:22,fontWeight:800,color:AC,margin:"0 0 8px" }}>{anuncio.titulo}</h2>
-              <div style={{ fontSize:26,fontWeight:900,color:TX }}>
-                {anuncio.precio==="Consultar"?"Consultar precio":`${anuncio.moneda==="USD"?"U$S":"$"} ${Number(anuncio.precio).toLocaleString("es-AR")}`}
-              </div>
-            </div>
-            <div style={{ textAlign:"right",fontSize:12,color:TL }}>
-              <div>👁️ {anuncio.vistas||0} vistas</div>
-              <div>❤️ {anuncio.favoritos||0} favoritos</div>
-              <div style={{ marginTop:4 }}>{anuncio.estado==="nuevo"?"🆕 Nuevo":"♻️ Usado"}</div>
-            </div>
-          </div>
-
-          {anuncio.descripcion && (
-            <div style={{ marginBottom:20,padding:"14px",background:BG,borderRadius:10,fontSize:14,color:TM,lineHeight:1.7 }}>
-              {anuncio.descripcion}
-            </div>
-          )}
-
-          {/* Vendedor */}
-          <div style={{ background:BG,borderRadius:10,padding:14,marginBottom:20,display:"flex",alignItems:"center",gap:12 }}>
-            <div style={{ width:44,height:44,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,flexShrink:0 }}>
-              {(anuncio.nombreVendedor||"?")[0].toUpperCase()}
-            </div>
-            <div>
-              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                <span style={{ fontWeight:700,color:TX }}>{anuncio.nombreVendedor||"Vendedor"}</span>
-                {anuncio.vendedorVerificado && (
-                  <span title="Usuario verificado" style={{ fontSize:13,background:"#EFF6FF",color:"#1D4ED8",border:"1px solid #BFDBFE",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:700 }}>✅ Verificado</span>
-                )}
-              </div>
-              <div style={{ fontSize:12,color:TL }}>Publicado {timeAgo(anuncio.createdAt)}</div>
-            </div>
-          </div>
-
-          {/* Contacto */}
-          <div style={{ display:"flex",gap:10,marginBottom:20,flexWrap:"wrap" }}>
-            {anuncio.mostrarWA && anuncio.contactoWA && (
-              <button onClick={handleWA} style={{
-                flex:1,padding:"12px",borderRadius:10,border:"none",cursor:"pointer",
-                background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,fontFamily:"inherit"
-              }}>💬 Contactar por WhatsApp</button>
-            )}
-            {user && user.uid !== anuncio.uid ? (
-              enviado ? (
-                <Alert type="success">✅ Mensaje enviado. Revisá tu bandeja de mensajes.</Alert>
-              ) : (
-                <button onClick={handleConsulta}
-                  style={{ flex:1,padding:"12px",borderRadius:10,border:"none",cursor:"pointer",
-                    background:IN,color:"#fff",fontWeight:700,fontSize:14,fontFamily:"inherit" }}>
-                  ✉️ Enviar mensaje privado
-                </button>
-              )
-            ) : !user ? (
-              <div style={{ flex:1,padding:"12px",borderRadius:10,border:`1px solid ${BR}`,textAlign:"center",fontSize:13,color:TL }}>
-                Iniciá sesión para enviar un mensaje
-              </div>
-            ) : null}
-          </div>
-
-          {/* Calificar */}
-          {user && user.uid!==anuncio.uid && !calificado && (
-            <div style={{ borderTop:`1px solid ${BR}`,paddingTop:16 }}>
-              <div style={{ fontWeight:700,marginBottom:10,color:AC }}>⭐ Calificar al vendedor</div>
-              <StarRating value={rating} onChange={setRating}/>
-              {rating>0 && <>
-                <Txta label="" value={comentario} onChange={setComentario} rows={2} placeholder="Comentario opcional..."/>
-                <Btn size="sm" onClick={handleCalificar}>Enviar calificación</Btn>
-              </>}
-            </div>
-          )}
-          {calificado && <Alert type="success">✅ ¡Gracias por tu calificación!</Alert>}
-          </div>{/* end content card */}
-        </div>{/* end grid */}
-      </div>{/* end maxWidth container */}
-    </div>
-  );
-}
-
 // ── NAVBAR ───────────────────────────────────────────────────────
 function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, unreadMsgs=0, searchQuery, setSearchQuery, onNavClick, onSearch, siteInfo={} }) {
   const [scrolled, setScrolled] = useState(false);
@@ -1122,14 +661,7 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
         <div style={{ display:"flex",alignItems:"center",gap:8,marginLeft:"auto" }}>
           {user ? (
             <>
-              <button onClick={onMensajes} title="Mensajes" style={{ position:"relative",width:38,height:38,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>
-                ✉️
-                {unreadMsgs>0 && (
-                  <span style={{ position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1 }}>
-                    {unreadMsgs>9?"9+":unreadMsgs}
-                  </span>
-                )}
-              </button>
+
               <button onClick={onMiCuenta} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 14px",
                 borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontFamily:"inherit" }}>
                 <div style={{ width:28,height:28,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
@@ -2020,13 +1552,13 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
         {/* Tabs */}
         <div style={{ display:"flex",borderBottom:`1px solid ${BR}`,padding:"0 24px",overflowX:"auto",scrollbarWidth:"none" }}>
-          {(["anuncios","consultas","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>(
+          {(["anuncios","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{
               padding:"12px 14px",border:"none",background:"transparent",cursor:"pointer",
               fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
               color:tab===t?P:TM, borderBottom:`2px solid ${tab===t?P:"transparent"}`,
             }}>
-              {t==="anuncios"?"📋 Mis Anuncios":t==="consultas"?"💬 Consultas":t==="alertas"?"🔔 Alertas":t==="favoritos"?"❤️ Favoritos":t==="perfil"?"👤 Mi Perfil":t==="plan"?"💎 Mi Plan":"🏪 Mi Tienda"}
+              {t==="anuncios"?"📋 Mis Anuncios":t==="alertas"?"🔔 Alertas":t==="favoritos"?"❤️ Favoritos":t==="perfil"?"👤 Mi Perfil":t==="plan"?"💎 Mi Plan":"🏪 Mi Tienda"}
             </button>
           ))}
         </div>
@@ -2226,7 +1758,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
       {tab==="tienda" && userData?.tiendaId && <MiTiendaTab user={user} userData={userData} tiendaId={userData.tiendaId}/>}
 
       {/* ── CONSULTAS ── */}
-      {tab==="consultas" && <ConsultasTab user={user}/>}
+      
 
       {/* ── ALERTAS ── */}
       {tab==="alertas" && <AlertasTab user={user} anuncios={misAnuncios}/>}
@@ -2289,121 +1821,6 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 }
 
 // ── RENOVAR PAGO MODAL ───────────────────────────────────────────
-// ── CONSULTAS TAB ────────────────────────────────────────────────
-function ConsultasTab({ user }) {
-  const [convs, setConvs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selConv, setSelConv] = useState(null);
-  const [mensajes, setMensajes] = useState([]);
-  const [texto, setTexto] = useState("");
-  const bottomRef = useRef(null);
-
-  useEffect(()=>{
-    if(!user) return;
-    const q = query(collection(db,"conversaciones"),where("participantes","array-contains",user.uid),orderBy("updatedAt","desc"));
-    const timer = setTimeout(()=>setLoading(false), 6000);
-    const unsub = onSnapshot(q,snap=>{ clearTimeout(timer); setConvs(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); });
-    return()=>{ unsub(); clearTimeout(timer); };
-  },[user]);
-
-  useEffect(()=>{
-    if(!selConv) return;
-    const q = query(collection(db,"conversaciones",selConv.id,"mensajes"),orderBy("createdAt","asc"));
-    const unsub = onSnapshot(q,snap=>{
-      setMensajes(snap.docs.map(d=>({id:d.id,...d.data()})));
-      snap.docs.forEach(d=>{ if(d.data().receptorUid===user.uid&&!d.data().leido) updateDoc(doc(db,"conversaciones",selConv.id,"mensajes",d.id),{leido:true}); });
-      updateDoc(doc(db,"conversaciones",selConv.id),{[`unread_${user.uid}`]:0}).catch(()=>{});
-    });
-    return()=>unsub();
-  },[selConv]);
-
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[mensajes]);
-
-  const enviar = async()=>{
-    if(!texto.trim()||!selConv) return;
-    const otroUid = selConv.participantes.find(p=>p!==user.uid);
-    await addDoc(collection(db,"conversaciones",selConv.id,"mensajes"),{
-      emisorUid:user.uid, emisorNombre:user.displayName||"Usuario",
-      receptorUid:otroUid, texto:texto.trim(), leido:false, createdAt:serverTimestamp()
-    });
-    await updateDoc(doc(db,"conversaciones",selConv.id),{ updatedAt:serverTimestamp(), ultimoMsg:texto.trim(), [`unread_${otroUid}`]:increment(1) });
-    setTexto("");
-  };
-
-  if(loading) return <Spinner/>;
-
-  if(selConv) return (
-    <div style={{ display:"flex",flexDirection:"column",height:400 }}>
-      <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:`1px solid ${BR}`,marginBottom:10 }}>
-        <button onClick={()=>setSelConv(null)} style={{ background:"none",border:"none",cursor:"pointer",fontSize:18,color:TM }}>←</button>
-        <div>
-          <div style={{ fontWeight:700,fontSize:14,color:TX }}>{selConv.anuncioTitulo||"Conversación"}</div>
-          <div style={{ fontSize:12,color:TL }}>{selConv.participantes.find(p=>p!==user.uid)?convs.find(c=>c.id===selConv.id)?.otroNombre||"Usuario":""}</div>
-        </div>
-      </div>
-      <div style={{ flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,paddingRight:4 }}>
-        {mensajes.map(m=>{
-          const mio = m.emisorUid===user.uid;
-          return (
-            <div key={m.id} style={{ display:"flex",justifyContent:mio?"flex-end":"flex-start" }}>
-              <div style={{ maxWidth:"75%",padding:"8px 12px",borderRadius:mio?"12px 12px 2px 12px":"12px 12px 12px 2px",
-                background:mio?P:BG, color:mio?"#fff":TX, fontSize:13 }}>
-                {m.texto}
-                <div style={{ fontSize:10,opacity:.6,marginTop:3,textAlign:mio?"right":"left" }}>
-                  {m.createdAt?.toDate?.().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})||""}
-                  {mio && (m.leido?" ✓✓":" ✓")}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottomRef}/>
-      </div>
-      <div style={{ display:"flex",gap:8,paddingTop:10,borderTop:`1px solid ${BR}` }}>
-        <input value={texto} onChange={e=>setTexto(e.target.value)} onKeyDown={e=>e.key==="Enter"&&enviar()}
-          placeholder="Escribí tu mensaje..." style={{ flex:1,padding:"9px 12px",borderRadius:10,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none" }}/>
-        <button onClick={enviar} style={{ padding:"9px 16px",borderRadius:10,background:P,color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontFamily:"inherit" }}>Enviar</button>
-      </div>
-    </div>
-  );
-
-  if(convs.length===0) return (
-    <div style={{ textAlign:"center",padding:"40px 20px",color:TL }}>
-      <div style={{ fontSize:44,marginBottom:10 }}>💬</div>
-      <div style={{ fontWeight:600 }}>No tenés consultas todavía</div>
-      <div style={{ fontSize:13,marginTop:6 }}>Cuando alguien te escriba sobre un anuncio, aparecerá acá</div>
-    </div>
-  );
-
-  return (
-    <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-      {convs.map(c=>{
-        const unread = c[`unread_${user.uid}`]||0;
-        return (
-          <div key={c.id} onClick={()=>setSelConv(c)}
-            style={{ display:"flex",alignItems:"center",gap:12,padding:"12px",borderRadius:12,
-              border:`1.5px solid ${unread>0?P:BR}`,background:unread>0?`${P}08`:SF,cursor:"pointer" }}>
-            <div style={{ width:42,height:42,borderRadius:"50%",background:unread>0?P:BG,color:unread>0?"#fff":TL,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0 }}>💬</div>
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontWeight:700,fontSize:13,color:TX,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                {c.anuncioTitulo||"Consulta"}
-              </div>
-              <div style={{ fontSize:12,color:TL,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                {c.ultimoMsg||"Sin mensajes"}
-              </div>
-            </div>
-            <div style={{ flexShrink:0,textAlign:"right" }}>
-              {unread>0 && <span style={{ display:"inline-block",background:P,color:"#fff",borderRadius:"50%",width:20,height:20,fontSize:11,fontWeight:700,lineHeight:"20px",textAlign:"center" }}>{unread}</span>}
-              <div style={{ fontSize:11,color:TL,marginTop:2 }}>{c.updatedAt?.toDate?.().toLocaleDateString("es-AR")||""}</div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── ALERTAS TAB ──────────────────────────────────────────────────
 function AlertasTab({ user, anuncios }) {
   const alertas = [];
@@ -2725,7 +2142,6 @@ function RenovarPagoModal({ anuncio, user, userData, onClose, onSuccess }) {
   const [comprobante, setComprobante] = useState(null);
   const [uploadingComp, setUploadingComp] = useState(false);
   const [loading, setLoading] = useState(null);
-  const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(()=>{
@@ -3323,7 +2739,6 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
   const [comprobante, setComprobante] = useState(null);
   const [uploadingComp, setUploadingComp] = useState(false);
   const [loading, setLoading] = useState(null);
-  const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(()=>{
@@ -3729,8 +3144,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   const [vistaActiva, setVistaActiva] = useState("inicio");
   const tiendasRef = useRef(null);
   const [cats, setCats] = useState(DEFAULT_CATS);
-  const [showMensajes, setShowMensajes] = useState(false);
-  const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [selTienda, setSelTienda] = useState(null);
   const [securityNotice, setSecurityNotice] = useState({ show:true, msg:"Nuestro equipo nunca te llamará por teléfono. Solo podés recibir WhatsApp desde el número oficial" });
   const [systemAlert, setSystemAlert] = useState({ show:false, text:"", type:"warning" });
@@ -3757,20 +3170,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         window.__CATS__ = DEFAULT_CATS;
       }
     }).catch(()=>{ window.__CATS__ = DEFAULT_CATS; });
-
-    // Contador de mensajes no leídos (solo si hay usuario)
-    if (user?.uid) {
-      const qConvs = query(
-        collection(db,"conversaciones"),
-        where("participantes","array-contains",user.uid)
-      );
-      const unsubMsgs = onSnapshot(qConvs, snap => {
-        const total = snap.docs.reduce((acc,d) => acc + (d.data()[`unread_${user.uid}`]||0), 0);
-        setUnreadMsgs(total);
-      });
-      // Store unsub for cleanup — attach to window temporarily
-      window.__unsubMsgs__ = unsubMsgs;
-    }
 
     getDocs(query(collection(db,"banners"),where("active","==",true)))
       .then(snap=>setHomeBanners(snap.docs.map(d=>({id:d.id,...d.data()}))));
@@ -3937,7 +3336,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   return (
     <div style={{ fontFamily:"'Nunito','Segoe UI',sans-serif",background:BG,minHeight:"100vh",overflowX:"hidden" }}>
       <Navbar user={user} onLogin={onLogin} onPublicar={onPublicar} onMiCuenta={onMiCuenta}
-        onMensajes={()=>setShowMensajes(true)} unreadMsgs={unreadMsgs}
+        
         onLogout={async()=>{ await signOut(auth); }}
         siteInfo={siteInfo}
         searchQuery={search} setSearchQuery={v=>{ setSearch(v); if(v){setVistaActiva("inicio");setSelCat(null);setSelSub(null);} }}
@@ -4491,7 +3890,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       )}
 
-      {showMensajes && user && <MensajesModal user={user} onClose={()=>setShowMensajes(false)}/>}
       {selTienda && <TiendaDetalle tienda={selTienda} siteWhatsapp={siteWhatsapp} onClose={()=>setSelTienda(null)} onVerAnuncio={ad=>{ setSelTienda(null); setSelAnuncio(ad); }}/>}
       {selAnuncio && <AnuncioDetalle anuncio={selAnuncio} onClose={()=>setSelAnuncio(null)} user={user}/>}
     </div>
