@@ -1062,10 +1062,27 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
             )}
           </div>
 
+          {/* Rating existente del vendedor */}
+          {anuncio.vendedorRating>0 && (
+            <div style={{ display:"flex",alignItems:"center",gap:8,padding:"12px 0",borderTop:`1px solid ${BR}` }}>
+              <div style={{ display:"flex",gap:2 }}>
+                {[1,2,3,4,5].map(i=>(
+                  <span key={i} style={{ fontSize:18, color:i<=Math.round(anuncio.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>
+                ))}
+              </div>
+              <span style={{ fontSize:13,fontWeight:700,color:TX }}>{anuncio.vendedorRating.toFixed(1)}</span>
+              <span style={{ fontSize:12,color:TL }}>
+                {(anuncio.plan==="esmeralda"||anuncio.plan==="diamante") ? "Calificación del comercio" : "Calificación del vendedor"}
+              </span>
+            </div>
+          )}
+
           {/* Calificar */}
           {user && user.uid!==anuncio.uid && !calificado && (
             <div style={{ borderTop:`1px solid ${BR}`,paddingTop:16 }}>
-              <div style={{ fontWeight:700,marginBottom:10,color:AC }}>⭐ Calificar al vendedor</div>
+              <div style={{ fontWeight:700,marginBottom:10,color:AC }}>
+                ⭐ {(anuncio.plan==="esmeralda"||anuncio.plan==="diamante") ? "Calificar este comercio" : "Calificar a este vendedor"}
+              </div>
               <StarRating value={rating} onChange={setRating}/>
               {rating>0 && <>
                 <Txta label="" value={comentario} onChange={setComentario} rows={2} placeholder="Comentario opcional..."/>
