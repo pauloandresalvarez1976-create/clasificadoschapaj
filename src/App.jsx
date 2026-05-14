@@ -1973,6 +1973,21 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [renovandoId, setRenovandoId] = useState(null);
   const [showRenovarPago, setShowRenovarPago] = useState(null); // anuncio obj
   const [planEnPago, setPlanEnPago] = useState(false); // true cuando PlanTab muestra sub-flujo de pago
+  const [alertasNoLeidas, setAlertasNoLeidas] = useState(0);
+  const [cantFavs, setCantFavs] = useState(0);
+
+  // Escuchar alertas no leídas en tiempo real
+  useEffect(()=>{
+    if(!user?.uid) return;
+    const q = query(collection(db,"alertas"),where("uid","==",user.uid),where("leido","==",false));
+    const unsub = onSnapshot(q, snap=>{ setAlertasNoLeidas(snap.size); },()=>{});
+    return()=>unsub();
+  },[user?.uid]);
+
+  // Contar favoritos desde localStorage
+  useEffect(()=>{
+    setCantFavs(getFavs().length);
+  },[]);
 
   useEffect(()=>{
     const q = query(collection(db,"anuncios"),where("uid","==",user.uid),orderBy("createdAt","desc"));
@@ -2090,15 +2105,31 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
         {/* Tabs */}
         <div style={{ display:"flex",borderBottom:`1px solid ${BR}`,padding:"0 24px",overflowX:"auto",scrollbarWidth:"none" }}>
-          {(["anuncios","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>(
+          {(["anuncios","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>{
+            const badge = t==="alertas" ? alertasNoLeidas : t==="favoritos" ? cantFavs : t==="anuncios" ? misAnuncios.length : 0;
+            return (
             <button key={t} onClick={()=>setTab(t)} style={{
               padding:"12px 14px",border:"none",background:"transparent",cursor:"pointer",
               fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
               color:tab===t?P:TM, borderBottom:`2px solid ${tab===t?P:"transparent"}`,
+              position:"relative",
             }}>
               {t==="anuncios"?"📋 Mis Anuncios":t==="alertas"?"🔔 Alertas":t==="favoritos"?"❤️ Favoritos":t==="perfil"?"👤 Mi Perfil":t==="plan"?"💎 Mi Plan":"🏪 Mi Tienda"}
+              {badge>0 && (
+                <span style={{
+                  position:"absolute", top:6, right:2,
+                  background: t==="alertas" ? ER : t==="favoritos" ? "#EC4899" : P,
+                  color:"#fff", borderRadius:20, fontSize:10, fontWeight:800,
+                  minWidth:16, height:16, display:"inline-flex", alignItems:"center",
+                  justifyContent:"center", padding:"0 4px", lineHeight:1,
+                  boxShadow:"0 1px 4px rgba(0,0,0,.25)",
+                }}>
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
 
 
