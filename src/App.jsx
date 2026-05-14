@@ -933,10 +933,34 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
 
   const handleCalificar = async () => {
     if (!user||!rating) return;
-    await addDoc(collection(db,"calificaciones"),{
-      anuncioId:anuncio.id, vendedorUid:anuncio.uid,
-      compradorUid:user.uid, puntos:rating, comentario, createdAt:serverTimestamp()
-    });
+    try {
+      // Guardar calificación
+      await addDoc(collection(db,"calificaciones"),{
+        anuncioId:anuncio.id, anuncioTitulo:anuncio.titulo,
+        vendedorUid:anuncio.uid, compradorUid:user.uid,
+        compradorNombre:user.displayName||"Alguien",
+        puntos:rating, comentario, createdAt:serverTimestamp()
+      });
+      // Calcular nuevo promedio y actualizar usuario y anuncio
+      const calSnap = await getDocs(query(collection(db,"calificaciones"),where("vendedorUid","==",anuncio.uid)));
+      const allPuntos = [...calSnap.docs.map(d=>d.data().puntos), rating];
+      const avg = Math.round((allPuntos.reduce((a,b)=>a+b,0)/allPuntos.length)*10)/10;
+      // Actualizar rating en usuario
+      const uSnap = await getDocs(query(collection(db,"usuarios"),where("uid","==",anuncio.uid)));
+      if(!uSnap.empty) await updateDoc(uSnap.docs[0].ref,{ rating:avg, totalCalificaciones:allPuntos.length });
+      // Actualizar rating en anuncio
+      await updateDoc(doc(db,"anuncios",anuncio.id),{ vendedorRating:avg });
+      // Crear alerta para el vendedor
+      await addDoc(collection(db,"alertas"),{
+        uid: anuncio.uid,
+        tipo: "calificacion",
+        icono: "⭐",
+        titulo: "Recibiste una calificación",
+        msg: `${user.displayName||"Un usuario"} te calificó con ${rating} estrella${rating===1?"":"s"} en "${anuncio.titulo}"${comentario?`: "${comentario}"`:"."}.`,
+        leido: false,
+        createdAt: serverTimestamp()
+      });
+    } catch(e){ console.error(e); }
     setCalificado(true);
   };
 
@@ -2452,6 +2476,20 @@ function ConsultasTab({ user }) {
 
 // ── ALERTAS TAB ──────────────────────────────────────────────────
 function AlertasTab({ user, anuncios }) {
+  const [alertasFS, setAlertasFS] = React.useState([]);
+  React.useEffect(()=>{
+    if(!user?.uid) return;
+    const q = query(collection(db,"alertas"),where("uid","==",user.uid),orderBy("createdAt","desc"));
+    const unsub = onSnapshot(q, snap=>{
+      setAlertasFS(snap.docs.map(d=>({id:d.id,...d.data()})));
+    },()=>{});
+    return()=>unsub();
+  },[user?.uid]);
+
+  const marcarLeida = async (id) => {
+    await updateDoc(doc(db,"alertas",id),{ leido:true });
+  };
+
   const alertas = [];
 
   // Alertas de vencimiento
@@ -2470,20 +2508,45 @@ function AlertasTab({ user, anuncios }) {
   // Sin anuncios
   if(anuncios.length===0) alertas.push({ id:"sinAnuncios", tipo:"info", icono:"📋", titulo:"¡Publicá tu primer anuncio!", msg:"Todavía no tenés anuncios. Publicar es gratis y fácil." });
 
-  if(alertas.length===0) return (
-    <div style={{ textAlign:"center",padding:"40px 20px",color:TL }}>
-      <div style={{ fontSize:44,marginBottom:10 }}>🔔</div>
-      <div style={{ fontWeight:600 }}>Todo en orden</div>
-      <div style={{ fontSize:13,marginTop:6 }}>No tenés alertas pendientes</div>
-    </div>
-  );
+  const colorMap = { error:ER, warning:WA, info:P, calificacion:"#F59E0B" };
+  const bgMap = { error:"#FEF2F2", warning:"#FFFBEB", info:`${P}0D`, calificacion:"#FFFBEB" };
+  const borderMap = { error:"#FECACA", warning:"#FDE68A", info:`${P}33`, calificacion:"#FCD34D" };
 
-  const colorMap = { error:ER, warning:WA, info:P };
-  const bgMap = { error:"#FEF2F2", warning:"#FFFBEB", info:`${P}0D` };
-  const borderMap = { error:"#FECACA", warning:"#FDE68A", info:`${P}33` };
+  const noLeidas = alertasFS.filter(a=>!a.leido).length;
 
   return (
     <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+      {/* Alertas de Firestore (calificaciones, etc) */}
+      {alertasFS.length>0 && (
+        <>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4 }}>
+            <div style={{ fontWeight:700,fontSize:13,color:TX }}>
+              Notificaciones {noLeidas>0 && <span style={{ background:ER,color:"#fff",borderRadius:20,padding:"1px 8px",fontSize:11,marginLeft:6 }}>{noLeidas} nuevas</span>}
+            </div>
+            {noLeidas>0 && <button onClick={()=>alertasFS.filter(a=>!a.leido).forEach(a=>marcarLeida(a.id))}
+              style={{ fontSize:11,color:P,background:"none",border:"none",cursor:"pointer",fontWeight:700 }}>
+              Marcar todas como leídas
+            </button>}
+          </div>
+          {alertasFS.map(al=>(
+            <div key={al.id} onClick={()=>!al.leido&&marcarLeida(al.id)}
+              style={{ display:"flex",alignItems:"flex-start",gap:12,padding:"14px 16px",
+                borderRadius:12,background:al.leido?"#F9FAFB":"#FFFBEB",
+                border:`1.5px solid ${al.leido?"#E5E7EB":"#FCD34D"}`,
+                cursor:al.leido?"default":"pointer",opacity:al.leido?0.7:1 }}>
+              <span style={{ fontSize:22,flexShrink:0 }}>{al.icono||"🔔"}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:700,fontSize:13,color:TX }}>{al.titulo}</div>
+                <div style={{ fontSize:12,color:TL,marginTop:3 }}>{al.msg}</div>
+                {al.createdAt && <div style={{ fontSize:10,color:TL,marginTop:4 }}>{timeAgo(al.createdAt)}</div>}
+              </div>
+              {!al.leido && <div style={{ width:8,height:8,borderRadius:"50%",background:ER,flexShrink:0,marginTop:4 }}/>}
+            </div>
+          ))}
+          {alertas.length>0 && <hr style={{ border:"none",borderTop:`1px solid ${BR}`,margin:"4px 0" }}/>}
+        </>
+      )}
+      {/* Alertas del sistema */}
       {alertas.map(al=>(
         <div key={al.id} style={{ display:"flex",alignItems:"flex-start",gap:12,padding:"14px 16px",
           borderRadius:12,background:bgMap[al.tipo],border:`1.5px solid ${borderMap[al.tipo]}` }}>
@@ -3000,9 +3063,12 @@ function AdCard({ ad, onClick, featured }) {
               : <span style={{ background:"#FEF3C7", color:"#92400E", fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:20 }}>⚠ Sin verificar</span>
             }
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             {ad.vendedorRating>0 && (
-              <div style={{ display:"flex", gap:1 }}>{[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:10, color:i<=Math.round(ad.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>)}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:2 }}>
+                <span style={{ fontSize:11,color:"#FBBF24" }}>★</span>
+                <span style={{ fontSize:11,fontWeight:700,color:TX }}>{ad.vendedorRating.toFixed(1)}</span>
+              </div>
             )}
             <div style={{ fontSize:11, color:TL, display:"flex", alignItems:"center", gap:3 }}>
               <span>👁</span><span>{ad.vistas||0}</span>
