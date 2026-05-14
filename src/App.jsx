@@ -858,6 +858,94 @@ function MensajesModal({ user, onClose }) {
   );
 }
 
+function DenunciarBtn({ anuncio, user }) {
+  const [open, setOpen] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [detalle, setDetalle] = useState("");
+  const [enviado, setEnviado] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const motivos = ["Producto/servicio falso o fraudulento","Contenido inapropiado u ofensivo","Precio engañoso","Spam o publicidad no permitida","Posible estafa","Otro"];
+
+  const handleEnviar = async () => {
+    if (!motivo) return setError("Seleccioná un motivo.");
+    if (!user) return setError("Tenés que estar logueado para denunciar.");
+    setLoading(true);
+    try {
+      await addDoc(collection(db,"denuncias"),{
+        anuncioId: anuncio.id,
+        anuncioTitulo: anuncio.titulo,
+        vendedorUid: anuncio.uid,
+        denuncianteUid: user.uid,
+        denuncianteEmail: user.email,
+        motivo,
+        detalle: detalle.trim(),
+        status: "pendiente",
+        createdAt: serverTimestamp(),
+      });
+      setEnviado(true);
+    } catch { setError("Error al enviar. Intentá de nuevo."); }
+    finally { setLoading(false); }
+  };
+
+  if (!open) return (
+    <button onClick={()=>setOpen(true)}
+      style={{ background:"transparent",border:`1px solid #9CA3AF`,borderRadius:8,padding:"7px 14px",
+        fontSize:12,fontWeight:600,color:"#6B7280",cursor:"pointer",fontFamily:"inherit",
+        display:"flex",alignItems:"center",gap:6,width:"100%" }}>
+      🚩 Denunciar este anuncio
+    </button>
+  );
+
+  return (
+    <div style={{ border:"1.5px solid #FCA5A5",borderRadius:12,padding:16,background:"#FFF5F5" }}>
+      <div style={{ fontWeight:700,fontSize:14,color:"#DC2626",marginBottom:12 }}>🚩 Denunciar anuncio</div>
+      {enviado ? (
+        <div style={{ textAlign:"center",padding:"8px 0" }}>
+          <div style={{ fontSize:24,marginBottom:6 }}>✅</div>
+          <div style={{ fontWeight:700,fontSize:13,color:"#15803D" }}>¡Denuncia enviada!</div>
+          <div style={{ fontSize:12,color:"#6B7280",marginTop:4 }}>La revisaremos a la brevedad.</div>
+          <button onClick={()=>{ setOpen(false); setEnviado(false); setMotivo(""); setDetalle(""); }}
+            style={{ marginTop:10,background:"transparent",border:"none",color:"#DC2626",fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>Cerrar</button>
+        </div>
+      ) : (
+        <>
+          {error && <div style={{ background:"#FEE2E2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#DC2626",marginBottom:10 }}>{error}</div>}
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontSize:12,fontWeight:600,color:"#374151",marginBottom:6 }}>Motivo *</div>
+            <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
+              {motivos.map(m=>(
+                <label key={m} style={{ display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13 }}>
+                  <input type="radio" name="motivo_denuncia" value={m} checked={motivo===m}
+                    onChange={()=>setMotivo(m)} style={{ accentColor:"#DC2626" }}/>
+                  {m}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontSize:12,fontWeight:600,color:"#374151",marginBottom:6 }}>Detalle adicional (opcional)</div>
+            <textarea value={detalle} onChange={e=>setDetalle(e.target.value)} rows={3}
+              placeholder="Contanos más sobre el problema..."
+              style={{ width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #FCA5A5",fontFamily:"inherit",fontSize:12,outline:"none",resize:"vertical",background:"#fff" }}/>
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <button onClick={()=>setOpen(false)}
+              style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #D1D5DB",background:"transparent",color:"#6B7280",cursor:"pointer",fontFamily:"inherit",fontSize:13 }}>
+              Cancelar
+            </button>
+            <button onClick={handleEnviar} disabled={loading}
+              style={{ flex:2,padding:"8px",borderRadius:8,background:"#DC2626",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,opacity:loading?.7:1 }}>
+              {loading?"Enviando...":"🚩 Enviar denuncia"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function AnuncioDetalle({ anuncio, onClose, user }) {
   const [fotoIdx, setFotoIdx] = useState(0);
   const [consulta, setConsulta] = useState("");
@@ -1087,6 +1175,11 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
                 Este vendedor no tiene WhatsApp publicado
               </div>
             )}
+          </div>
+
+          {/* Denunciar */}
+          <div style={{ marginTop:8 }}>
+            <DenunciarBtn anuncio={anuncio} user={user} />
           </div>
 
           {/* Calificar - siempre visible */}
@@ -3976,7 +4069,7 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
 }
 
 // ── TIENDA DETALLE ───────────────────────────────────────────────
-function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp }) {
+function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp, user }) {
   const [anuncios, setAnuncios] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -4086,6 +4179,10 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp }) {
               ))}
             </div>
           )}
+          {/* Denunciar tienda */}
+          <div style={{ marginTop:16 }}>
+            <DenunciarBtn anuncio={{ id: tienda.id, titulo: tienda.nombre, uid: tienda.uid }} user={user} esTienda />
+          </div>
         </div>
       </div>
     </div>
@@ -4875,7 +4972,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       )}
 
       {showMensajes && user && <MensajesModal user={user} onClose={()=>setShowMensajes(false)}/>}
-      {selTienda && <TiendaDetalle tienda={selTienda} siteWhatsapp={siteWhatsapp} onClose={()=>setSelTienda(null)} onVerAnuncio={ad=>{ setSelTienda(null); setSelAnuncio(ad); }}/>}
+      {selTienda && <TiendaDetalle tienda={selTienda} siteWhatsapp={siteWhatsapp} user={user} onClose={()=>setSelTienda(null)} onVerAnuncio={ad=>{ setSelTienda(null); setSelAnuncio(ad); }}/>}
       {selAnuncio && <AnuncioDetalle anuncio={selAnuncio} onClose={()=>setSelAnuncio(null)} user={user}/>}
     </div>
   );
