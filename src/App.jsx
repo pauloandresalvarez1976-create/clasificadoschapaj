@@ -2911,9 +2911,10 @@ function FavBtn({ adId, style={} }) {
     <button
       onClick={e=>{ e.stopPropagation(); setFav(toggleFav(adId)); }}
       title={fav?"Quitar de favoritos":"Guardar en favoritos"}
-      style={{ background:fav?"#FFF0F0":"rgba(255,255,255,.92)", border:`1.5px solid ${fav?"#EF4444":"#E5E7EB"}`,
-        borderRadius:"50%", width:32, height:32, display:"flex", alignItems:"center", justifyContent:"center",
-        cursor:"pointer", fontSize:16, transition:"all .2s", flexShrink:0, ...style }}>
+      style={{ background:fav?"#FEE2E2":"#fff", border:`2px solid ${fav?"#EF4444":"#D1D5DB"}`,
+        borderRadius:"50%", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center",
+        cursor:"pointer", fontSize:17, transition:"all .2s", flexShrink:0,
+        boxShadow:"0 2px 6px rgba(0,0,0,.18)", ...style }}>
       {fav ? "❤️" : "🤍"}
     </button>
   );
@@ -2944,8 +2945,17 @@ function AdCard({ ad, onClick, featured }) {
       <div style={{ padding:"11px 13px" }}>
         <div style={{ fontSize:11,color:P,fontWeight:600,marginBottom:3 }}>{ad.categoria}{ad.localidad?` · ${ad.localidad}`:""}</div>
         <div style={{ fontWeight:600,fontSize:13,color:TX,marginBottom:6,lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" }}>{ad.titulo}</div>
-        <div style={{ fontWeight:800,fontSize:16,color:isFree?TM:AC }}>
+        <div style={{ fontWeight:800,fontSize:16,color:isFree?TM:AC,marginBottom:6 }}>
           {isFree?<span style={{ fontSize:12,color:TL }}>Precio a consultar</span>:`${ad.moneda==="USD"?"U$S":"$"} ${Number(ad.precio).toLocaleString("es-AR")}`}
+        </div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          {ad.vendedorRating>0
+            ? <div style={{ display:"flex", gap:1 }}>{[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:11, color:i<=Math.round(ad.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>)}</div>
+            : <span/>
+          }
+          <div style={{ fontSize:11, color:TL, display:"flex", alignItems:"center", gap:4 }}>
+            <span>👁</span><span>{ad.vistas||0}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -2999,7 +3009,7 @@ function AdCardList({ ad, onClick }) {
             )}
           </div>
           <div style={{ fontSize:11,color:TL }}>{timeAgo(ad.createdAt)}</div>
-          {ad.vistas>0 && <div style={{ fontSize:11,color:TL }}>👁 {ad.vistas}</div>}
+          <div style={{ fontSize:11,color:TL, display:"flex", alignItems:"center", gap:3 }}><span>👁</span><span>{ad.vistas||0}</span></div>
           <div onClick={e=>e.stopPropagation()}>
             <FavBtn adId={ad.id}/>
           </div>
