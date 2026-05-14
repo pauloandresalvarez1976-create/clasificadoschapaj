@@ -2759,25 +2759,222 @@ function EditarFotosModal({ anuncio, onClose, onSuccess }) {
 // ── DESTACAR MODAL ───────────────────────────────────────────────
 function DestacarModal({ anuncio, userData, user, onClose, onSuccess }) {
   const [planSel, setPlanSel] = useState("esmeralda");
-  const pricing = window.__PRICING__ || {};
-  const precioEsm = Number(pricing.plataPrice||2100);
-  const precioDia = Number(pricing.oroPrice||9000);
+  const [metodo, setMetodo] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [error, setError] = useState("");
+  const [comprobante, setComprobante] = useState(null);
+  const [uploadingComp, setUploadingComp] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [pricing, setPricing] = useState(null);
+
+  useEffect(()=>{
+    getDoc(doc(db,"config","site")).then(snap=>{
+      if(snap.exists()&&snap.data().pricing) setPricing(snap.data().pricing);
+    }).catch(()=>{});
+  },[]);
+
+  const mpEnabled      = pricing?.mercadopagoEnabled !== false;
+  const transferEnabled = pricing?.transferEnabled === true;
+  const transferInfo   = pricing?.transferInstructions || "Consultá el CBU por WhatsApp.";
+  const precioEsm = Number(pricing?.plataPrice||5000);
+  const precioDia = Number(pricing?.oroPrice||9000);
 
   const planes = [
     { id:"esmeralda", icon:"💚", label:"Esmeralda", color:"#16A34A", bg:"#F0FDF4", border:"#4ADE80",
-      precio:precioEsm,
-      features:["Badge verde destacado","Aparecés antes que Cuarzo","🤖 Asistente IA incluido"] },
+      precio:precioEsm, features:["Badge verde destacado","Aparecés antes que Cuarzo","🤖 Asistente IA incluido"] },
     { id:"diamante", icon:"💠", label:"Diamante", color:"#7C3AED", bg:"#F5F3FF", border:"#8B5CF6",
-      precio:precioDia,
-      features:["Badge violeta premium","Primero en todos los listados","🤖 Asistente IA incluido"] },
+      precio:precioDia, features:["Badge violeta premium","Primero en todos los listados","🤖 Asistente IA incluido"] },
   ];
 
-  const handleContratar = async () => {
-    const D = DATOS_LEGALES;
-    const plan = planes.find(p=>p.id===planSel);
-    const msg = encodeURIComponent(`Hola! Quiero destacar mi anuncio "${anuncio.titulo}" con el plan ${plan.label} ($${plan.precio.toLocaleString("es-AR")}). Usuario: ${user?.email}`);
-    window.open(`https://wa.me/549${D.whatsapp}?text=${msg}`,"_blank");
+  const plan = planes.find(p=>p.id===planSel);
+
+  const handlePagarMP = async () => {
+    setError(""); setLoading("mp");
+    try {
+      const res = await fetch("https://crearpreferencia-ww7mv25tba-uc.a.run.app", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ plan: planSel, userId: user.uid, email: user.email }),
+      });
+      const data = await res.json();
+      if(data.init_point) window.location.href = data.init_point;
+      else setError("Error al generar el pago. Intentá de nuevo.");
+    } catch { setError("No se pudo conectar con MercadoPago."); }
+    finally { setLoading(null); }
   };
+
+  const handleSubirComprobante = async (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    setUploadingComp(true);
+    try {
+      const sRef = ref(storage, `comprobantes/${user?.uid}_${planSel}_${Date.now()}`);
+      const task = uploadBytesResumable(sRef, file, { contentType: file.type });
+      task.on("state_changed", null, ()=>setUploadingComp(false), async()=>{
+        const url = await getDownloadURL(task.snapshot.ref);
+        setComprobante(url); setUploadingComp(false);
+      });
+    } catch { setUploadingComp(false); }
+  };
+
+  const handleEnviarTransferencia = async () => {
+    if(!comprobante) return setError("Subí el comprobante antes de enviar.");
+    setLoading("transferencia");
+    try {
+      await addDoc(collection(db,"pagos"), {
+        userId: user.uid, email: user.email,
+        nombre: userData?.nombre || user.displayName || "",
+        plan: planSel, tipo: "destaque",
+        anuncioId: anuncio.id, anuncioTitulo: anuncio.titulo,
+        monto: plan.precio, metodo: "transferencia",
+        comprobante, status: "pendiente",
+        createdAt: serverTimestamp(),
+      });
+      setEnviado(true);
+    } catch { setError("Error al enviar. Intentá de nuevo."); }
+    finally { setLoading(null); }
+  };
+
+  if(enviado) return (
+    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
+      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:400,padding:40,textAlign:"center" }}>
+        <div style={{ fontSize:52,marginBottom:16 }}>✅</div>
+        <div style={{ fontWeight:800,fontSize:18,color:TX,marginBottom:8 }}>¡Comprobante enviado!</div>
+        <div style={{ fontSize:13,color:TL,marginBottom:20 }}>Revisaremos tu transferencia y activaremos el destaque en menos de 24 horas.</div>
+        <button onClick={onClose} style={{ background:P,color:"#fff",border:"none",borderRadius:10,padding:"10px 28px",fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>Cerrar</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
+      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ background:"linear-gradient(135deg,#F59E0B,#D97706)",padding:"20px 24px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+          <div>
+            <div style={{ color:"#fff",fontWeight:800,fontSize:16 }}>⭐ Destacar anuncio</div>
+            <div style={{ color:"rgba(255,255,255,.7)",fontSize:12,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:340 }}>{anuncio.titulo}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.7)",cursor:"pointer",fontSize:20 }}>✕</button>
+        </div>
+
+        <div style={{ padding:24 }}>
+          {error && <div style={{ background:"#FEE2E2",border:"1px solid #FCA5A5",borderRadius:10,padding:"10px 14px",color:"#DC2626",fontSize:13,marginBottom:14 }}>{error}</div>}
+
+          {/* Selector de plan */}
+          {!metodo && (
+            <>
+              <div style={{ fontSize:13,color:TM,marginBottom:14 }}>Elegí el plan para destacar este anuncio:</div>
+              <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:20 }}>
+                {planes.map(p=>(
+                  <div key={p.id} onClick={()=>setPlanSel(p.id)}
+                    style={{ border:`2px solid ${planSel===p.id?p.color:BR}`,borderRadius:12,padding:"14px 16px",
+                      cursor:"pointer",background:planSel===p.id?p.bg:SF,transition:"all .2s" }}>
+                    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                        <span style={{ fontSize:20 }}>{p.icon}</span>
+                        <span style={{ fontWeight:800,fontSize:15,color:p.color }}>{p.label}</span>
+                      </div>
+                      <div style={{ fontWeight:900,fontSize:18,color:p.color }}>${p.precio.toLocaleString("es-AR")}</div>
+                    </div>
+                    <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
+                      {p.features.map(f=>(
+                        <div key={f} style={{ display:"flex",alignItems:"center",gap:6,fontSize:12,color:TX }}>
+                          <span style={{ width:16,height:16,borderRadius:"50%",background:"#DCFCE7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,flexShrink:0 }}>✓</span>
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Método de pago */}
+              {mpEnabled && transferEnabled ? (
+                <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:16 }}>
+                  <button onClick={()=>setMetodo("mp")}
+                    style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:12,border:"2px solid #009EE3",background:"#F0F9FF",cursor:"pointer",fontFamily:"inherit" }}>
+                    <span style={{ fontSize:24 }}>💳</span>
+                    <div style={{ textAlign:"left" }}>
+                      <div style={{ fontWeight:700,fontSize:14,color:"#009EE3" }}>MercadoPago</div>
+                      <div style={{ fontSize:12,color:TL }}>Se activa automáticamente</div>
+                    </div>
+                  </button>
+                  <button onClick={()=>setMetodo("transferencia")}
+                    style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:12,border:"2px solid #16A34A",background:"#F0FDF4",cursor:"pointer",fontFamily:"inherit" }}>
+                    <span style={{ fontSize:24 }}>🏦</span>
+                    <div style={{ textAlign:"left" }}>
+                      <div style={{ fontWeight:700,fontSize:14,color:"#16A34A" }}>Transferencia bancaria</div>
+                      <div style={{ fontSize:12,color:TL }}>Se activa en 24hs</div>
+                    </div>
+                  </button>
+                </div>
+              ) : mpEnabled ? (
+                <button onClick={handlePagarMP} disabled={loading==="mp"}
+                  style={{ width:"100%",padding:"12px",borderRadius:12,background:"#009EE3",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:15 }}>
+                  {loading==="mp"?"Redirigiendo...":"💳 Ir a MercadoPago"}
+                </button>
+              ) : transferEnabled ? (
+                <button onClick={()=>setMetodo("transferencia")}
+                  style={{ width:"100%",padding:"12px",borderRadius:12,background:"#16A34A",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:15 }}>
+                  🏦 Pagar por transferencia
+                </button>
+              ) : null}
+            </>
+          )}
+
+          {/* MercadoPago */}
+          {metodo==="mp" && (
+            <div style={{ textAlign:"center",padding:"20px 0" }}>
+              <div style={{ fontSize:48,marginBottom:12 }}>💳</div>
+              <div style={{ fontWeight:700,fontSize:16,color:TX,marginBottom:6 }}>Pagar con MercadoPago</div>
+              <div style={{ fontSize:13,color:TL,marginBottom:20 }}>Serás redirigido al checkout seguro</div>
+              <div style={{ display:"flex",gap:10 }}>
+                <button onClick={()=>setMetodo(null)} style={{ flex:1,padding:"10px",borderRadius:10,border:`1px solid ${BR}`,background:"transparent",color:TM,cursor:"pointer",fontFamily:"inherit" }}>← Volver</button>
+                <button onClick={handlePagarMP} disabled={loading==="mp"}
+                  style={{ flex:2,padding:"10px",borderRadius:10,background:"#009EE3",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:800 }}>
+                  {loading==="mp"?"Redirigiendo...":"💳 Ir a MercadoPago"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Transferencia */}
+          {metodo==="transferencia" && (
+            <div>
+              <div style={{ background:"#F0FDF4",border:"1.5px solid #4ADE80",borderRadius:12,padding:"14px 16px",marginBottom:14 }}>
+                <div style={{ fontWeight:700,fontSize:13,color:"#15803D",marginBottom:6 }}>🏦 Datos para transferir</div>
+                <div style={{ fontSize:13,color:"#166534",whiteSpace:"pre-wrap",lineHeight:1.8 }}>{transferInfo}</div>
+              </div>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontWeight:600,fontSize:13,color:TX,marginBottom:8 }}>📎 Subir comprobante</div>
+                {comprobante ? (
+                  <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:"#F0FDF4",border:"1.5px solid #4ADE80" }}>
+                    <span style={{ fontSize:20 }}>✅</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13,fontWeight:600,color:"#15803D" }}>Comprobante subido</div>
+                      <a href={comprobante} target="_blank" rel="noopener noreferrer" style={{ fontSize:11,color:"#16A34A" }}>Ver imagen</a>
+                    </div>
+                    <button onClick={()=>setComprobante(null)} style={{ background:"none",border:"none",cursor:"pointer",fontSize:16,color:TL }}>✕</button>
+                  </div>
+                ) : (
+                  <label style={{ display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderRadius:10,border:`1.5px dashed ${BR}`,background:BG,cursor:"pointer" }}>
+                    <span style={{ fontSize:20 }}>📷</span>
+                    <span style={{ fontSize:13,color:TL }}>{uploadingComp?"Subiendo...":"Seleccioná el comprobante"}</span>
+                    <input type="file" accept="image/*,application/pdf" style={{ display:"none" }} onChange={handleSubirComprobante} disabled={uploadingComp}/>
+                  </label>
+                )}
+              </div>
+              <div style={{ display:"flex",gap:10 }}>
+                <button onClick={()=>setMetodo(null)} style={{ flex:1,padding:"10px",borderRadius:10,border:`1px solid ${BR}`,background:"transparent",color:TM,cursor:"pointer",fontFamily:"inherit" }}>← Volver</button>
+                <button onClick={handleEnviarTransferencia} disabled={!comprobante||loading==="transferencia"}
+                  style={{ flex:2,padding:"10px",borderRadius:10,background:OK,color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:800,opacity:(!comprobante||loading==="transferencia")?.6:1 }}>
+                  {loading==="transferencia"?"Enviando...":"📨 Enviar comprobante"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
@@ -2795,45 +2992,6 @@ function DestacarModal({ anuncio, userData, user, onClose, onSuccess }) {
 
           <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:20 }}>
             {planes.map(p=>(
-              <div key={p.id} onClick={()=>setPlanSel(p.id)}
-                style={{ border:`2px solid ${planSel===p.id?p.color:BR}`,borderRadius:12,padding:"14px 16px",
-                  cursor:"pointer",background:planSel===p.id?p.bg:SF,transition:"all .2s" }}>
-                <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
-                  <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                    <span style={{ fontSize:20 }}>{p.icon}</span>
-                    <span style={{ fontWeight:800,fontSize:15,color:p.color }}>{p.label}</span>
-                  </div>
-                  <div style={{ fontWeight:900,fontSize:18,color:p.color }}>${p.precio.toLocaleString("es-AR")}</div>
-                </div>
-                <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
-                  {p.features.map(f=>(
-                    <div key={f} style={{ display:"flex",alignItems:"center",gap:6,fontSize:12,color:TX }}>
-                      <span style={{ width:16,height:16,borderRadius:"50%",background:"#DCFCE7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,flexShrink:0 }}>✓</span>
-                      {f}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#92400E",marginBottom:16 }}>
-            💡 Te contactamos por WhatsApp para coordinar el pago y activar tu destaque.
-          </div>
-
-          <div style={{ display:"flex",gap:10 }}>
-            <button onClick={onClose} style={{ flex:1,padding:"10px",borderRadius:10,border:`1px solid ${BR}`,background:"transparent",color:TM,cursor:"pointer",fontFamily:"inherit",fontWeight:600 }}>Cancelar</button>
-            <button onClick={handleContratar}
-              style={{ flex:2,padding:"10px",borderRadius:10,background:"linear-gradient(135deg,#F59E0B,#D97706)",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:800 }}>
-              ⭐ Contratar por WhatsApp
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RenovarPagoModal({ anuncio, user, userData, onClose, onSuccess }) {
   const [pricing, setPricing] = useState(null);
   const [metodo, setMetodo] = useState(null);
