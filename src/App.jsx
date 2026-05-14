@@ -1204,6 +1204,7 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
                 onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                 Salir
               </button>}
+              {isMob && <button onClick={onLogout} title="Cerrar sesión" style={{ padding:"6px 8px",borderRadius:8,border:`1.5px solid ${ER}`,background:"transparent",cursor:"pointer",fontSize:16,color:ER,lineHeight:1 }}>🚪</button>}
             </>
           ) : (
             <button onClick={onLogin} style={{ padding:"8px 14px",borderRadius:8,border:`1.5px solid ${BR}`,
@@ -2099,7 +2100,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
         {/* Tabs */}
         <div style={{ display:"flex",borderBottom:`1px solid ${BR}`,padding:"0 24px",overflowX:"auto",scrollbarWidth:"none" }}>
           {(["anuncios","alertas","favoritos","perfil","plan",...(userData?.tiendaId?["tienda"]:[])]).map(t=>{
-            const badge = t==="alertas" ? alertasNoLeidas : t==="favoritos" ? cantFavs : t==="anuncios" ? misAnuncios.length : 0;
+            const badge = t==="alertas" ? alertasNoLeidas : t==="favoritos" ? cantFavs : 0;
             return (
             <button key={t} onClick={()=>setTab(t)} style={{
               padding:"12px 14px",border:"none",background:"transparent",cursor:"pointer",
