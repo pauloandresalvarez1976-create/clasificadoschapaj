@@ -3011,7 +3011,8 @@ function AdCardList({ ad, onClick }) {
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={()=>onClick(ad)}
       style={{ background:SF, border:`1.5px solid ${h?P:BR}`, borderRadius:14, overflow:"hidden",
         cursor:"pointer", transition:"all .2s", display:"flex", alignItems:"stretch",
-        boxShadow:h?"0 6px 24px rgba(0,0,0,.09)":"0 1px 4px rgba(0,0,0,.05)" }}>
+        boxShadow:h?"0 6px 24px rgba(0,0,0,.09)":"0 1px 4px rgba(0,0,0,.05)",
+        opacity: ad.vendedorVerificado ? 1 : 0.72 }}>
       {/* Foto */}
       <div style={{ width:130, minWidth:130, background:`linear-gradient(135deg,${BG},#e8e8f0)`,
         display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
@@ -3021,6 +3022,12 @@ function AdCardList({ ad, onClick }) {
         }
         {ad.plan&&ad.plan!=="cuarzo"&&(
           <div style={{ position:"absolute",top:6,left:6 }}><AdBadge type={ad.plan.toUpperCase()}/></div>
+        )}
+        {ad.vendedorVerificado && (
+          <div style={{ position:"absolute",bottom:6,left:0,right:0,display:"flex",justifyContent:"center" }}>
+            <div style={{ background:"#10B981",color:"#fff",borderRadius:20,padding:"2px 7px",
+              fontSize:9,fontWeight:700,display:"flex",alignItems:"center",gap:2 }}>✓ Verificado</div>
+          </div>
         )}
       </div>
       {/* Contenido */}
@@ -3961,6 +3968,10 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   });
 
   const sortedAds = [...filteredAds].sort((a,b)=>{
+    // Verificados siempre primero
+    const vA = a.vendedorVerificado?0:1;
+    const vB = b.vendedorVerificado?0:1;
+    if(vA!==vB) return vA-vB;
     if(orden==="precio_asc") return (Number(a.precio)||0)-(Number(b.precio)||0);
     if(orden==="precio_desc") return (Number(b.precio)||0)-(Number(a.precio)||0);
     if(orden==="vistos") return (b.vistas||0)-(a.vistas||0);
