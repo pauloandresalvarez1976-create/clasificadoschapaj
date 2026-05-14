@@ -444,7 +444,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
         categoria, subcategoria, estado, localidad,
         fotos: urls, fotoPortada: urls[0]||"",
         contactoWA: mostrarWA?contactoWA:"", mostrarWA,
-        uid: user.uid, nombreVendedor: userData?.nombre||user.displayName||"",
+        uid: user.uid, nombreVendedor: userData?.nombre||user.displayName||"", esComercio: !!(userData?.tiendaId),
         vendedorVerificado: user.emailVerified || false,
         plan: "cuarzo", status: "activo",
         vistas:0, consultas:0, favoritos:0, reportes:0,
@@ -1072,7 +1072,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
               </div>
               <span style={{ fontSize:13,fontWeight:700,color:TX }}>{anuncio.vendedorRating.toFixed(1)}</span>
               <span style={{ fontSize:12,color:TL }}>
-                {(anuncio.plan==="esmeralda"||anuncio.plan==="diamante") ? "Calificación del comercio" : "Calificación del vendedor"}
+                {anuncio.esComercio ? "Calificación del comercio" : "Calificación del vendedor"}
               </span>
             </div>
           )}
@@ -1081,7 +1081,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
           {user && user.uid!==anuncio.uid && !calificado && (
             <div style={{ borderTop:`1px solid ${BR}`,paddingTop:16 }}>
               <div style={{ fontWeight:700,marginBottom:10,color:AC }}>
-                ⭐ {(anuncio.plan==="esmeralda"||anuncio.plan==="diamante") ? "Calificar este comercio" : "Calificar a este vendedor"}
+                ⭐ {anuncio.esComercio ? "Calificar este comercio" : "Calificar a este vendedor"}
               </div>
               <StarRating value={rating} onChange={setRating}/>
               {rating>0 && <>
