@@ -3882,7 +3882,7 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp }) {
   );
 }
 
-function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, onComoPublicar, selAnuncio, setSelAnuncio, selTienda, setSelTienda }) {
+function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, onComoPublicar, selAnuncio, setSelAnuncio, selTienda, setSelTienda, vistaActiva, setVistaActiva, onVerTiendas }) {
   const [recentAds, setRecentAds] = useState([]);
   const [featuredAds, setFeaturedAds] = useState([]);
   const [search, setSearch] = useState("");
@@ -3895,7 +3895,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   const [heroConfig, setHeroConfig] = useState({ heroImg:"", faviconUrl:"", heroTitle:"Clasificados Chapa J", heroSub:"Los clasificados con patente sanjuanina", heroBg:"#1A1A2E" });
   const [siteWhatsapp, setSiteWhatsapp] = useState("2645461073");
   const [tiendas, setTiendas] = useState([]);
-  const [vistaActiva, setVistaActiva] = useState("inicio");
   const tiendasRef = useRef(null);
   const [cats, setCats] = useState(DEFAULT_CATS);
   const [showMensajes, setShowMensajes] = useState(false);
@@ -4118,7 +4117,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         onSearch={()=>{ setVistaActiva("inicio"); setPagina(1); setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100); }}
         onNavClick={(item)=>{
           if(item==="Últimos Publicados"){setVistaActiva("inicio");setSelCat(null);setSelSub(null);setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
-          else if(item==="Tiendas Virtuales"){setVistaActiva("tiendas");setTimeout(()=>tiendasRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
+          else if(item==="Tiendas Virtuales"){onVerTiendas();setTimeout(()=>tiendasRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
           else{
             const cat = cats.find(c=>c.name===item||c.name.startsWith(item));
             if(cat){setVistaActiva("inicio");handleSelCat(cat);}
@@ -4576,7 +4575,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
                     <a href="#" onClick={e=>{
                       e.preventDefault();
                       if(col.title==="Categorías"){
-                        if(l==="Tiendas Virtuales"){ setVistaActiva("tiendas"); return; }
+                        if(l==="Tiendas Virtuales"){ onVerTiendas(); return; }
                         const cat=cats.find(c=>c.name===l||c.name.startsWith(l));
                         if(cat) handleSelCat(cat);
                       } else if(col.title==="Mi Cuenta"){
@@ -7479,10 +7478,11 @@ export default function App() {
   const [backConfirm, setBackConfirm] = useState(false);
   const [selAnuncio, setSelAnuncio] = useState(null);
   const [selTienda, setSelTienda] = useState(null);
+  const [vistaActiva, setVistaActiva] = useState("inicio");
   const backConfirmTimer = useRef(null);
   // Ref para leer siempre el estado más reciente dentro del handler
   const stateRef = useRef({});
-  stateRef.current = { selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm };
+  stateRef.current = { selAnuncio, selTienda, vistaActiva, view, showAuth, showPublicar, showMiCuenta, backConfirm };
   const keysHeld = useState(new Set())[0];
 
   // ── MANEJO BOTÓN ATRÁS — HANDLER ÚNICO ───────────────────────
@@ -7499,16 +7499,17 @@ export default function App() {
     history.pushState({ nav: true }, "");
 
     const handlePop = () => {
-      const { selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm } = stateRef.current;
+      const { selAnuncio, selTienda, vistaActiva, view, showAuth, showPublicar, showMiCuenta, backConfirm } = stateRef.current;
 
-      if (selAnuncio)   { setSelAnuncio(null);   pushNav(); return; }
-      if (selTienda)    { setSelTienda(null);     pushNav(); return; }
-      if (view === "admin")      { setView("front"); pushNav(); return; }
-      if (view === "adminLogin") { setView("front"); pushNav(); return; }
+      if (selAnuncio)   { setSelAnuncio(null);         pushNav(); return; }
+      if (selTienda)    { setSelTienda(null);           pushNav(); return; }
+      if (vistaActiva !== "inicio") { setVistaActiva("inicio"); pushNav(); return; }
+      if (view === "admin")      { setView("front");    pushNav(); return; }
+      if (view === "adminLogin") { setView("front");    pushNav(); return; }
       if (view === "legal" || view === "comoPublicar") { setView("front"); pushNav(); return; }
-      if (showMiCuenta) { setShowMiCuenta(false); pushNav(); return; }
-      if (showPublicar) { setShowPublicar(false); pushNav(); return; }
-      if (showAuth)     { setShowAuth(false);     pushNav(); return; }
+      if (showMiCuenta) { setShowMiCuenta(false);      pushNav(); return; }
+      if (showPublicar) { setShowPublicar(false);       pushNav(); return; }
+      if (showAuth)     { setShowAuth(false);           pushNav(); return; }
 
       // Inicio: siempre mostramos toast y reponemos barrera
       setBackConfirm(true);
@@ -7525,8 +7526,9 @@ export default function App() {
   const openAuth     = ()      => { pushNav(); setShowAuth(true); };
   const openPublicar = ()      => { pushNav(); setShowPublicar(true); };
   const openMiCuenta = (tab)   => { pushNav(); setMiCuentaTab(tab||"anuncios"); setShowMiCuenta(true); };
-  const openAnuncio  = (a)     => { pushNav(); setSelAnuncio(a); };
-  const openTienda   = (t)     => { pushNav(); setSelTienda(t); };
+  const openAnuncio  = (a)        => { pushNav(); setSelAnuncio(a); };
+  const openTienda   = (t)        => { pushNav(); setSelTienda(t); };
+  const openTiendas  = ()         => { pushNav(); setVistaActiva("tiendas"); };
   const openView     = (v, extra) => { pushNav(); if(extra) setLegalTab(extra); setView(v); };
 
   useEffect(()=>{
@@ -7606,6 +7608,7 @@ export default function App() {
           onComoPublicar={()=>openView("comoPublicar")}
           selAnuncio={selAnuncio} setSelAnuncio={openAnuncio}
           selTienda={selTienda}   setSelTienda={openTienda}
+          vistaActiva={vistaActiva} setVistaActiva={setVistaActiva} onVerTiendas={openTiendas}
         />
       )}
 
