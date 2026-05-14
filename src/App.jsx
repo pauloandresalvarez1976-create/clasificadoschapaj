@@ -2258,7 +2258,6 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                         )}
                       </div>
 
-                      </div>{/* fin fila info */}
                       </div>{/* fin fila superior */}
                       {/* Botones acción - fila inferior responsive */}
                       {!editando && (
