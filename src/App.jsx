@@ -2967,9 +2967,12 @@ function AdCard({ ad, onClick, featured }) {
   const isFree = !ad.precio||ad.precio==="Consultar";
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={()=>onClick(ad)}
-      style={{ background:SF,border:`1.5px solid ${h?P:BR}`,borderRadius:14,overflow:"hidden",
+      style={{ background:SF,
+        border:`2px solid ${h?P:ad.vendedorVerificado?"#10B981":"#E5E7EB"}`,
+        borderRadius:14,overflow:"hidden",
         cursor:"pointer",transition:"all .25s",transform:h?"translateY(-3px)":"none",
-        boxShadow:h?"0 12px 32px rgba(0,0,0,.1)":"0 2px 8px rgba(0,0,0,.04)",position:"relative" }}>
+        boxShadow:h?"0 12px 32px rgba(0,0,0,.1)":"0 2px 8px rgba(0,0,0,.04)",
+        position:"relative", opacity: ad.vendedorVerificado ? 1 : 0.75 }}>
       <div style={{ height:featured?155:125,background:`linear-gradient(135deg,${BG},#e8e8f0)`,
         display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden" }}>
         {ad.fotoPortada
@@ -2990,13 +2993,20 @@ function AdCard({ ad, onClick, featured }) {
         <div style={{ fontWeight:800,fontSize:16,color:isFree?TM:AC,marginBottom:6 }}>
           {isFree?<span style={{ fontSize:12,color:TL }}>Precio a consultar</span>:`${ad.moneda==="USD"?"U$S":"$"} ${Number(ad.precio).toLocaleString("es-AR")}`}
         </div>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          {ad.vendedorRating>0
-            ? <div style={{ display:"flex", gap:1 }}>{[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:11, color:i<=Math.round(ad.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>)}</div>
-            : <span/>
-          }
-          <div style={{ fontSize:11, color:TL, display:"flex", alignItems:"center", gap:4 }}>
-            <span>👁</span><span>{ad.vistas||0}</span>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            {ad.vendedorVerificado
+              ? <span style={{ background:"#D1FAE5", color:"#065F46", fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:20 }}>✓ Verificado</span>
+              : <span style={{ background:"#FEF3C7", color:"#92400E", fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:20 }}>⚠ Sin verificar</span>
+            }
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            {ad.vendedorRating>0 && (
+              <div style={{ display:"flex", gap:1 }}>{[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:10, color:i<=Math.round(ad.vendedorRating)?"#FBBF24":"#D1D5DB" }}>★</span>)}</div>
+            )}
+            <div style={{ fontSize:11, color:TL, display:"flex", alignItems:"center", gap:3 }}>
+              <span>👁</span><span>{ad.vistas||0}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -3009,10 +3019,12 @@ function AdCardList({ ad, onClick }) {
   const isFree = !ad.precio||ad.precio==="Consultar";
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={()=>onClick(ad)}
-      style={{ background:SF, border:`1.5px solid ${h?P:BR}`, borderRadius:14, overflow:"hidden",
+      style={{ background:SF,
+        border:`2px solid ${h?P:ad.vendedorVerificado?"#10B981":"#E5E7EB"}`,
+        borderRadius:14, overflow:"hidden",
         cursor:"pointer", transition:"all .2s", display:"flex", alignItems:"stretch",
         boxShadow:h?"0 6px 24px rgba(0,0,0,.09)":"0 1px 4px rgba(0,0,0,.05)",
-        opacity: ad.vendedorVerificado ? 1 : 0.72 }}>
+        opacity: ad.vendedorVerificado ? 1 : 0.75 }}>
       {/* Foto */}
       <div style={{ width:130, minWidth:130, background:`linear-gradient(135deg,${BG},#e8e8f0)`,
         display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
@@ -3042,9 +3054,13 @@ function AdCardList({ ad, onClick }) {
           <div style={{ fontWeight:700,fontSize:15,color:TX,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
             {ad.titulo}
           </div>
-          <div style={{ fontSize:12,color:TL,display:"flex",gap:12,flexWrap:"wrap" }}>
+          <div style={{ fontSize:12,color:TL,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center" }}>
             {ad.localidad && <span>📍 {ad.localidad}</span>}
             {ad.estado && <span>• {ad.estado}</span>}
+            {ad.vendedorVerificado
+              ? <span style={{ background:"#D1FAE5",color:"#065F46",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20 }}>✓ Verificado</span>
+              : <span style={{ background:"#FEF3C7",color:"#92400E",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20 }}>⚠ Sin verificar</span>
+            }
           </div>
         </div>
         {/* Precio + meta */}
