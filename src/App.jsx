@@ -7480,30 +7480,24 @@ export default function App() {
   const [selAnuncio, setSelAnuncio] = useState(null);
   const [selTienda, setSelTienda] = useState(null);
   const backConfirmTimer = useRef(null);
+  // Ref para leer siempre el estado más reciente dentro del handler
+  const stateRef = useRef({});
+  stateRef.current = { selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm };
   const keysHeld = useState(new Set())[0];
 
-  // ── MANEJO BOTÓN ATRÁS — HANDLER ÚNICO CENTRALIZADO ──────────
-  useEffect(()=>{
-    history.replaceState({ level: 0 }, "");
-  }, []);
+  // ── MANEJO BOTÓN ATRÁS — HANDLER ÚNICO ───────────────────────
+  // Cada función que ABRE algo llama pushNav() en ese momento.
+  // El handler de popstate lee stateRef (siempre fresco) y cierra lo más reciente.
+  const pushNav = () => history.pushState({ nav: true }, "");
 
-  // Push al historial cada vez que se abre algo
   useEffect(()=>{
-    if (selAnuncio || selTienda || showMiCuenta || showPublicar || showAuth ||
-        view === "legal" || view === "comoPublicar" ||
-        view === "adminLogin" || view === "admin") {
-      history.pushState({ level: 1 }, "");
-    }
-  }, [selAnuncio, selTienda, showMiCuenta, showPublicar, showAuth, view]);
+    history.replaceState({ nav: false }, "");
 
-  // Escuchar popstate — orden de cierre: más profundo primero
-  useEffect(()=>{
     const handlePop = () => {
-      // Nivel más profundo: anuncio (puede estar sobre tienda)
+      const { selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm } = stateRef.current;
+
       if (selAnuncio)   { setSelAnuncio(null);   return; }
-      // Tienda
       if (selTienda)    { setSelTienda(null);     return; }
-      // Modales del App
       if (view === "admin")      { setView("front"); return; }
       if (view === "adminLogin") { setView("front"); return; }
       if (view === "legal" || view === "comoPublicar") { setView("front"); return; }
@@ -7511,22 +7505,30 @@ export default function App() {
       if (showPublicar) { setShowPublicar(false); return; }
       if (showAuth)     { setShowAuth(false);     return; }
 
-      // Estamos en el inicio — doble atrás para salir
+      // Inicio: primer atrás muestra toast, segundo sale
       if (!backConfirm) {
         setBackConfirm(true);
-        history.pushState({ level: 0 }, "");
+        pushNav();
         clearTimeout(backConfirmTimer.current);
         backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
       } else {
         clearTimeout(backConfirmTimer.current);
         setBackConfirm(false);
-        history.back();
+        history.go(-1);
       }
     };
 
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-  }, [selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm]);
+  }, []); // se registra UNA sola vez — stateRef siempre tiene lo más reciente
+
+  // Helpers para abrir pantallas — hacen pushNav() ellos mismos
+  const openAuth     = ()      => { pushNav(); setShowAuth(true); };
+  const openPublicar = ()      => { pushNav(); setShowPublicar(true); };
+  const openMiCuenta = (tab)   => { pushNav(); setMiCuentaTab(tab||"anuncios"); setShowMiCuenta(true); };
+  const openAnuncio  = (a)     => { pushNav(); setSelAnuncio(a); };
+  const openTienda   = (t)     => { pushNav(); setSelTienda(t); };
+  const openView     = (v, extra) => { pushNav(); if(extra) setLegalTab(extra); setView(v); };
 
   useEffect(()=>{
     const unsub = onAuthStateChanged(auth, async u=>{
@@ -7574,7 +7576,7 @@ export default function App() {
       const ctrl  = !ADMIN_CFG.ctrl  || e.ctrlKey;
       const shift = !ADMIN_CFG.shift || e.shiftKey;
       const alt   = !ADMIN_CFG.alt   || e.altKey;
-      if (ctrl&&shift&&alt&&e.code===ADMIN_CFG.hotkey&&view==="front") { e.preventDefault(); setView("adminLogin"); }
+      if (ctrl&&shift&&alt&&e.code===ADMIN_CFG.hotkey&&view==="front") { e.preventDefault(); openView("adminLogin"); }
     };
     const up = e => keysHeld.delete(e.code);
     window.addEventListener("keydown",down);
@@ -7598,18 +7600,18 @@ export default function App() {
 
       {view==="front" && (
         <FrontSite user={user} userData={userData}
-          onLogin={()=>setShowAuth(true)}
-          onPublicar={()=>user?setShowPublicar(true):setShowAuth(true)}
-          onMiCuenta={(tab)=>{ if(user){ setMiCuentaTab(tab||"anuncios"); setShowMiCuenta(true); } else { setShowAuth(true); } }}
-          onLegal={(tab)=>{ setLegalTab(tab||"terminos"); setView("legal"); }}
-          onComoPublicar={()=>setView("comoPublicar")}
-          selAnuncio={selAnuncio} setSelAnuncio={setSelAnuncio}
-          selTienda={selTienda}   setSelTienda={setSelTienda}
+          onLogin={openAuth}
+          onPublicar={()=>user?openPublicar():openAuth()}
+          onMiCuenta={(tab)=>{ if(user){ openMiCuenta(tab); } else { openAuth(); } }}
+          onLegal={(tab)=>openView("legal", tab||"terminos")}
+          onComoPublicar={()=>openView("comoPublicar")}
+          selAnuncio={selAnuncio} setSelAnuncio={openAnuncio}
+          selTienda={selTienda}   setSelTienda={openTienda}
         />
       )}
 
       {view==="comoPublicar" && (
-        <ComoPublicarView onVolver={()=>setView("front")} onPublicar={()=>{ setView("front"); user?setShowPublicar(true):setShowAuth(true); }}/>
+        <ComoPublicarView onVolver={()=>setView("front")} onPublicar={()=>{ setView("front"); user?openPublicar():openAuth(); }}/>
       )}
 
       {view==="legal" && (
@@ -7636,7 +7638,7 @@ export default function App() {
       )}
 
       {showMiCuenta && user && (
-        <MiCuenta user={user} userData={userData} onClose={()=>setShowMiCuenta(false)} onPublicar={()=>user?setShowPublicar(true):setShowAuth(true)} initialTab={miCuentaTab}/>
+        <MiCuenta user={user} userData={userData} onClose={()=>setShowMiCuenta(false)} onPublicar={()=>user?openPublicar():openAuth()} initialTab={miCuentaTab}/>
       )}
 
       {showSuccess && (
