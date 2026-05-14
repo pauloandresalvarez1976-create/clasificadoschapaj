@@ -4870,6 +4870,64 @@ const Tog = ({ label, checked, onChange, hint }) => (
 // ════════════════════════════════════════════════════════════════
 //  ADMIN SECTIONS
 // ════════════════════════════════════════════════════════════════
+function MigracionRatings() {
+  const [estado, setEstado] = React.useState("idle"); // idle | running | done | error
+  const [resultado, setResultado] = React.useState("");
+
+  const handleMigrar = async () => {
+    if (!window.confirm("¿Recalcular ratings de todos los anuncios? Esto puede tardar unos segundos.")) return;
+    setEstado("running");
+    setResultado("");
+    try {
+      // Obtener todas las calificaciones
+      const calSnap = await getDocs(collection(db,"calificaciones"));
+      // Agrupar por vendedorUid
+      const porVendedor = {};
+      calSnap.docs.forEach(d=>{
+        const { vendedorUid, puntos } = d.data();
+        if(!vendedorUid) return;
+        if(!porVendedor[vendedorUid]) porVendedor[vendedorUid] = [];
+        porVendedor[vendedorUid].push(puntos);
+      });
+      // Para cada vendedor, calcular promedio y actualizar sus anuncios y usuario
+      let totalAnuncios = 0;
+      for (const [uid, puntos] of Object.entries(porVendedor)) {
+        const avg = Math.round((puntos.reduce((a,b)=>a+b,0)/puntos.length)*10)/10;
+        // Actualizar usuario
+        const uSnap = await getDocs(query(collection(db,"usuarios"),where("uid","==",uid)));
+        if(!uSnap.empty) await updateDoc(uSnap.docs[0].ref,{ rating:avg, totalCalificaciones:puntos.length });
+        // Actualizar todos los anuncios de ese vendedor
+        const aSnap = await getDocs(query(collection(db,"anuncios"),where("uid","==",uid)));
+        for (const adDoc of aSnap.docs) {
+          await updateDoc(adDoc.ref,{ vendedorRating:avg });
+          totalAnuncios++;
+        }
+      }
+      setResultado(`✅ Listo. Se actualizaron ${totalAnuncios} anuncios de ${Object.keys(porVendedor).length} vendedores.`);
+      setEstado("done");
+    } catch(e) {
+      console.error(e);
+      setResultado("❌ Error: " + e.message);
+      setEstado("error");
+    }
+  };
+
+  return (
+    <Card style={{ marginBottom:16 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+        <div>
+          <div style={{ fontWeight:700, fontSize:14 }}>🔄 Recalcular ratings de anuncios</div>
+          <div style={{ fontSize:12, color:"#6B7280", marginTop:3 }}>Actualiza el rating de todos los anuncios existentes basándose en las calificaciones recibidas. Ejecutar una sola vez.</div>
+        </div>
+        <Btn onClick={handleMigrar} disabled={estado==="running"} color={PRIMARY}>
+          {estado==="running" ? "⏳ Procesando..." : "▶ Ejecutar migración"}
+        </Btn>
+      </div>
+      {resultado && <div style={{ marginTop:10, padding:"8px 12px", borderRadius:8, background:estado==="done"?"#D1FAE5":"#FEE2E2", fontSize:13, fontWeight:600 }}>{resultado}</div>}
+    </Card>
+  );
+}
+
 function ADashboard() {
   const [stats, setStats] = useState({ anunciosActivos:0, totalUsuarios:0, tiendasActivas:0, denunciasPendientes:0 });
   const [recentAds, setRecentAds] = useState([]);
@@ -4912,6 +4970,9 @@ function ADashboard() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))", gap:12, marginBottom:24 }}>
         {kpis.map(k=><StatCard key={k.label} {...k} />)}
       </div>
+      {/* Herramientas de mantenimiento */}
+      <MigracionRatings />
+
       <Card>
         <div style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>⚡ Últimos anuncios publicados</div>
         {loading ? <div style={{ textAlign:"center", padding:20, color:TEXT_LIGHT }}>Cargando...</div> :
