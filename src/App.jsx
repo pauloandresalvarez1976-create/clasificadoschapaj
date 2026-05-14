@@ -2976,22 +2976,6 @@ function DestacarModal({ anuncio, userData, user, onClose, onSuccess }) {
   );
 }
 
-  return (
-    <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
-      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:480,boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ background:"linear-gradient(135deg,#F59E0B,#D97706)",padding:"20px 24px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <div>
-            <div style={{ color:"#fff",fontWeight:800,fontSize:16 }}>⭐ Destacar anuncio</div>
-            <div style={{ color:"rgba(255,255,255,.7)",fontSize:12,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:340 }}>{anuncio.titulo}</div>
-          </div>
-          <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,.7)",cursor:"pointer",fontSize:20 }}>✕</button>
-        </div>
-
-        <div style={{ padding:24 }}>
-          <div style={{ fontSize:13,color:TM,marginBottom:16 }}>Elegí el plan para destacar este anuncio y obtener más visibilidad:</div>
-
-          <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:20 }}>
-            {planes.map(p=>(
 function RenovarPagoModal({ anuncio, user, userData, onClose, onSuccess }) {
   const [pricing, setPricing] = useState(null);
   const [metodo, setMetodo] = useState(null);
