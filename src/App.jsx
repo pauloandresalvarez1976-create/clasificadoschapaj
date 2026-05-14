@@ -7511,11 +7511,17 @@ export default function App() {
       if (showPublicar) { setShowPublicar(false);       pushNav(); return; }
       if (showAuth)     { setShowAuth(false);           pushNav(); return; }
 
-      // Inicio: siempre mostramos toast y reponemos barrera
-      setBackConfirm(true);
-      pushNav();
-      clearTimeout(backConfirmTimer.current);
-      backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
+      // Inicio: primer atrás muestra toast, segundo atrás sale
+      if (!backConfirm) {
+        setBackConfirm(true);
+        pushNav();
+        clearTimeout(backConfirmTimer.current);
+        backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
+      } else {
+        clearTimeout(backConfirmTimer.current);
+        setBackConfirm(false);
+        // No hacemos pushNav — dejamos que el navegador retroceda de verdad
+      }
     };
 
     window.addEventListener("popstate", handlePop);
