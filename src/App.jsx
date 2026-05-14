@@ -3486,14 +3486,21 @@ function TiendaCard({ tienda, siteWhatsapp, onVerTienda, onVerAnunciosTienda }) 
 // ── TIENDA PLANES SECTION ────────────────────────────────────────
 function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
   const [pricing, setPricing] = useState(null);
-  const [planSel, setPlanSel] = useState(null);       // "esmeralda" | "diamante"
-  const [duracion, setDuracion] = useState("30");     // "30" | "90" | "180"
+  const [planSel, setPlanSel] = useState(null);
+  const [duracion, setDuracion] = useState("30");
   const [metodo, setMetodo] = useState(null);
   const [comprobante, setComprobante] = useState(null);
   const [uploadingComp, setUploadingComp] = useState(false);
   const [loading, setLoading] = useState(null);
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
+
+  // Datos de la tienda a crear si no existe
+  const [tiendaNombre, setTiendaNombre] = useState(userData?.nombre || "");
+  const [tiendaWsp, setTiendaWsp] = useState("");
+  const [tiendaDesc, setTiendaDesc] = useState("");
+  const [tiendaStep, setTiendaStep] = useState("planes"); // "planes" | "datos" | "pago"
+  const [tiendaIdCreada, setTiendaIdCreada] = useState(userData?.tiendaId || null);
 
   useEffect(()=>{
     getDoc(doc(db,"config","site")).then(snap=>{
@@ -3520,6 +3527,44 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
     { id:"esmeralda", icon:"💚", color:"#34D399", dark:"#059669", features:["Logo y descripción","Link a WhatsApp","Tus anuncios destacados","Verificación de tienda"] },
     { id:"diamante",  icon:"💠", color:"#818CF8", dark:"#4F46E5", features:["Todo Esmeralda","Posición prioritaria","Galería de fotos","Badge PREMIUM","Anuncios al tope"], highlight:true },
   ];
+
+  const handleSeleccionarPlan = (id) => {
+    setPlanSel(id);
+    setMetodo(mpEnabled && transferEnabled ? null : mpEnabled ? "mp" : transferEnabled ? "transferencia" : null);
+    setError("");
+    if (tiendaIdCreada || userData?.tiendaId) {
+      setTiendaStep("pago");
+    } else {
+      setTiendaStep("datos");
+    }
+  };
+
+  const handleCrearTiendaYPagar = async () => {
+    if (!tiendaNombre.trim()) return setError("Ingresá el nombre de tu tienda.");
+    if (!tiendaWsp.trim()) return setError("Ingresá tu número de WhatsApp.");
+    setLoading("creando");
+    try {
+      const tiendaRef = await addDoc(collection(db,"tiendas"), {
+        uid: user.uid,
+        nombre: tiendaNombre.trim(),
+        whatsapp: tiendaWsp.trim(),
+        descripcion: tiendaDesc.trim(),
+        plan: planSel,
+        planStatus: "pendiente",
+        verificada: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      const userSnap = await getDocs(query(collection(db,"usuarios"), where("uid","==",user.uid)));
+      if (!userSnap.empty) {
+        await updateDoc(doc(db,"usuarios", userSnap.docs[0].id), { tiendaId: tiendaRef.id });
+      }
+      setTiendaIdCreada(tiendaRef.id);
+      setTiendaStep("pago");
+      setError("");
+    } catch { setError("Error al crear la tienda. Intentá de nuevo."); }
+    finally { setLoading(null); }
+  };
 
   const handleSubirComprobante = async (e) => {
     const file = e.target.files[0]; if(!file) return;
@@ -3587,14 +3632,55 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
     </div>
   );
 
+  // Pantalla: datos de la tienda (si no tiene tienda todavía)
+  if (tiendaStep === "datos" && planSel) {
+    const info = planesInfo.find(p=>p.id===planSel);
+    return (
+      <div style={{ background:"linear-gradient(135deg,#0F0C29,#1a1a3e)", padding:"40px 20px" }}>
+        <div style={{ maxWidth:520, margin:"0 auto" }}>
+          <button onClick={()=>{ setPlanSel(null); setTiendaStep("planes"); setError(""); }}
+            style={{ background:"none", border:"1px solid rgba(255,255,255,.3)", color:"rgba(255,255,255,.7)", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontFamily:"inherit", fontSize:13, marginBottom:20 }}>
+            ← Volver a los planes
+          </button>
+          <div style={{ color:"#fff", fontWeight:800, fontSize:20, marginBottom:6 }}>Datos de tu tienda</div>
+          <div style={{ color:"rgba(255,255,255,.5)", fontSize:13, marginBottom:24 }}>
+            Completá los datos para crear tu tienda <span style={{ color:info.color, fontWeight:700 }}>Plan {info.id.charAt(0).toUpperCase()+info.id.slice(1)}</span>. Después de crear la tienda podrás pagar.
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:20 }}>
+            <div>
+              <div style={{ color:"rgba(255,255,255,.7)", fontSize:13, fontWeight:600, marginBottom:6 }}>Nombre de la tienda *</div>
+              <input value={tiendaNombre} onChange={e=>setTiendaNombre(e.target.value)} placeholder="Ej: Ferretería El Tornillo"
+                style={{ width:"100%", background:"rgba(255,255,255,.08)", border:"1.5px solid rgba(255,255,255,.2)", borderRadius:10, padding:"10px 14px", color:"#fff", fontFamily:"inherit", fontSize:14, outline:"none" }}/>
+            </div>
+            <div>
+              <div style={{ color:"rgba(255,255,255,.7)", fontSize:13, fontWeight:600, marginBottom:6 }}>WhatsApp *</div>
+              <input value={tiendaWsp} onChange={e=>setTiendaWsp(e.target.value)} placeholder="Ej: 2645000000"
+                style={{ width:"100%", background:"rgba(255,255,255,.08)", border:"1.5px solid rgba(255,255,255,.2)", borderRadius:10, padding:"10px 14px", color:"#fff", fontFamily:"inherit", fontSize:14, outline:"none" }}/>
+            </div>
+            <div>
+              <div style={{ color:"rgba(255,255,255,.7)", fontSize:13, fontWeight:600, marginBottom:6 }}>Descripción (opcional)</div>
+              <textarea value={tiendaDesc} onChange={e=>setTiendaDesc(e.target.value)} rows={3} placeholder="Contá brevemente qué vendés..."
+                style={{ width:"100%", background:"rgba(255,255,255,.08)", border:"1.5px solid rgba(255,255,255,.2)", borderRadius:10, padding:"10px 14px", color:"#fff", fontFamily:"inherit", fontSize:14, outline:"none", resize:"vertical" }}/>
+            </div>
+          </div>
+          {error && <div style={{ background:"rgba(239,68,68,.15)", border:"1px solid rgba(239,68,68,.3)", borderRadius:10, padding:"10px 14px", color:"#FCA5A5", fontSize:13, marginBottom:16 }}>{error}</div>}
+          <button onClick={handleCrearTiendaYPagar} disabled={!!loading}
+            style={{ width:"100%", background:info.color, color:"#fff", border:"none", borderRadius:12, padding:"14px", fontWeight:800, fontSize:15, cursor:"pointer", fontFamily:"inherit", opacity:loading?"0.7":"1" }}>
+            {loading==="creando" ? "Creando tienda..." : "Crear tienda y continuar →"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Pantalla de pago
-  if(planSel) {
+  if(planSel && tiendaStep === "pago") {
     const info = planesInfo.find(p=>p.id===planSel);
     const precio = precios[planSel][duracion];
     return (
       <div style={{ background:"linear-gradient(135deg,#0F0C29,#1a1a3e)", padding:"40px 20px" }}>
         <div style={{ maxWidth:520, margin:"0 auto" }}>
-          <button onClick={()=>{ setPlanSel(null); setMetodo(null); setComprobante(null); setError(""); }}
+          <button onClick={()=>{ setPlanSel(null); setMetodo(null); setComprobante(null); setError(""); setTiendaStep("planes"); }}
             style={{ background:"none", border:"1px solid rgba(255,255,255,.3)", color:"rgba(255,255,255,.7)", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontFamily:"inherit", fontSize:13, marginBottom:20 }}>
             ← Volver a los planes
           </button>
@@ -3753,7 +3839,7 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
                   </li>
                 ))}
               </ul>
-              <button onClick={()=>{ if(!user){ alert("Iniciá sesión para contratar un plan."); return; } setPlanSel(p.id); setMetodo(mpEnabled&&transferEnabled?null:mpEnabled?"mp":"transferencia"); }}
+              <button onClick={()=>{ if(!user){ alert("Iniciá sesión para contratar un plan."); return; } handleSeleccionarPlan(p.id); }}
                 style={{ width:"100%", padding:"12px", borderRadius:10, border:`1.5px solid ${p.color}`, background:p.highlight?p.color:"transparent", color:p.highlight?"#fff":p.color, fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
                 Contratar plan
               </button>
