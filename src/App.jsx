@@ -869,16 +869,9 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
   const [comentario, setComentario] = useState("");
   const [calificado, setCalificado] = useState(false);
 
-  // Pantalla completa — push history para que "atrás" lo cierre
   useEffect(()=>{
-    window.history.pushState({ anuncioDetalle: true }, "");
-    const handlePop = () => onClose();
-    window.addEventListener("popstate", handlePop);
     document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("popstate", handlePop);
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   },[]);
 
   useEffect(()=>{ updateDoc(doc(db,"anuncios",anuncio.id),{vistas:increment(1)}); },[]);
@@ -3889,11 +3882,11 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp }) {
   );
 }
 
-function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, onComoPublicar }) {
+function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, onComoPublicar, selAnuncio, setSelAnuncio, selTienda, setSelTienda }) {
   const [recentAds, setRecentAds] = useState([]);
   const [featuredAds, setFeaturedAds] = useState([]);
   const [search, setSearch] = useState("");
-  const [selAnuncio, setSelAnuncio] = useState(null);
+  // selAnuncio y selTienda vienen como props desde App (manejo centralizado del historial)
   const [selCat, setSelCat] = useState(null);
   const [selSub, setSelSub] = useState(null);
   const anunciosRef = useRef(null);
@@ -3907,40 +3900,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   const [cats, setCats] = useState(DEFAULT_CATS);
   const [showMensajes, setShowMensajes] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
-  const [selTienda, setSelTienda] = useState(null);
 
-  // ── BOTÓN ATRÁS para anuncio y tienda ───────────────────────────
-  // Cuando se abre un anuncio o tienda empujamos una entrada al historial.
-  // El popstate la captura y cierra el detalle en lugar de salir.
-  const prevSelAnuncio = useRef(null);
-  const prevSelTienda  = useRef(null);
-
-  useEffect(()=>{
-    // Abrió anuncio
-    if (selAnuncio && !prevSelAnuncio.current) {
-      history.pushState({ modal: "anuncio" }, "");
-    }
-    prevSelAnuncio.current = selAnuncio;
-  }, [selAnuncio]);
-
-  useEffect(()=>{
-    // Abrió tienda
-    if (selTienda && !prevSelTienda.current) {
-      history.pushState({ modal: "tienda" }, "");
-    }
-    prevSelTienda.current = selTienda;
-  }, [selTienda]);
-
-  useEffect(()=>{
-    const handlePop = (e) => {
-      // Cerrar en orden: anuncio primero (puede estar sobre tienda), luego tienda
-      if (selAnuncio) { setSelAnuncio(null); return; }
-      if (selTienda)  { setSelTienda(null);  return; }
-      // Si ninguno está abierto, dejar que el handler del App raíz maneje el atrás
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, [selAnuncio, selTienda]);
   const [securityNotice, setSecurityNotice] = useState({ show:true, msg:"Nuestro equipo nunca te llamará por teléfono. Solo podés recibir WhatsApp desde el número oficial" });
   const [systemAlert, setSystemAlert] = useState({ show:false, text:"", type:"warning" });
   const [maintenance, setMaintenance] = useState({ active:false, msg:"Sitio en mantenimiento. Volvemos pronto 🔧" });
@@ -7517,55 +7477,47 @@ export default function App() {
   const [miCuentaTab, setMiCuentaTab] = useState("anuncios");
   const [showSuccess, setShowSuccess] = useState(false);
   const [backConfirm, setBackConfirm] = useState(false);
+  const [selAnuncio, setSelAnuncio] = useState(null);
+  const [selTienda, setSelTienda] = useState(null);
   const backConfirmTimer = useRef(null);
   const keysHeld = useState(new Set())[0];
 
-  // ── MANEJO BOTÓN ATRÁS (móvil) ───────────────────────────────
-  // Cada vez que se abre una pantalla/modal, empujamos una entrada al historial.
-  // Al presionar atrás, popstate la captura y cierra el modal en lugar de salir.
+  // ── MANEJO BOTÓN ATRÁS — HANDLER ÚNICO CENTRALIZADO ──────────
   useEffect(()=>{
-    // Estado inicial: una entrada "base" en el historial
     history.replaceState({ level: 0 }, "");
   }, []);
 
-  // Empujar entrada cuando se abre algo
+  // Push al historial cada vez que se abre algo
   useEffect(()=>{
-    const level =
-      view === "admin" ? 3 :
-      view === "adminLogin" ? 2 :
-      view === "legal" || view === "comoPublicar" ? 1 :
-      showMiCuenta ? 1 :
-      showPublicar ? 1 :
-      showAuth ? 1 : 0;
-
-    if (level > 0) {
-      history.pushState({ level }, "");
+    if (selAnuncio || selTienda || showMiCuenta || showPublicar || showAuth ||
+        view === "legal" || view === "comoPublicar" ||
+        view === "adminLogin" || view === "admin") {
+      history.pushState({ level: 1 }, "");
     }
-  }, [view, showAuth, showPublicar, showMiCuenta]);
+  }, [selAnuncio, selTienda, showMiCuenta, showPublicar, showAuth, view]);
 
-  // Escuchar el evento popstate (botón atrás)
+  // Escuchar popstate — orden de cierre: más profundo primero
   useEffect(()=>{
-    const handlePop = (e) => {
-      const level = e.state?.level ?? 0;
-
-      // Cerrar en orden: el modal más reciente primero
-      if (view === "admin") { setView("front"); return; }
+    const handlePop = () => {
+      // Nivel más profundo: anuncio (puede estar sobre tienda)
+      if (selAnuncio)   { setSelAnuncio(null);   return; }
+      // Tienda
+      if (selTienda)    { setSelTienda(null);     return; }
+      // Modales del App
+      if (view === "admin")      { setView("front"); return; }
       if (view === "adminLogin") { setView("front"); return; }
       if (view === "legal" || view === "comoPublicar") { setView("front"); return; }
       if (showMiCuenta) { setShowMiCuenta(false); return; }
       if (showPublicar) { setShowPublicar(false); return; }
-      if (showAuth) { setShowAuth(false); return; }
+      if (showAuth)     { setShowAuth(false);     return; }
 
-      // Estamos en el inicio — primer atrás: mostrar aviso
+      // Estamos en el inicio — doble atrás para salir
       if (!backConfirm) {
         setBackConfirm(true);
-        // Volver a empujar para que el próximo atrás también lo capturemos
         history.pushState({ level: 0 }, "");
-        // Auto-ocultar el aviso a los 3 segundos
         clearTimeout(backConfirmTimer.current);
         backConfirmTimer.current = setTimeout(()=>setBackConfirm(false), 3000);
       } else {
-        // Segundo atrás: salir de verdad
         clearTimeout(backConfirmTimer.current);
         setBackConfirm(false);
         history.back();
@@ -7574,7 +7526,7 @@ export default function App() {
 
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-  }, [view, showAuth, showPublicar, showMiCuenta, backConfirm]);
+  }, [selAnuncio, selTienda, view, showAuth, showPublicar, showMiCuenta, backConfirm]);
 
   useEffect(()=>{
     const unsub = onAuthStateChanged(auth, async u=>{
@@ -7651,6 +7603,8 @@ export default function App() {
           onMiCuenta={(tab)=>{ if(user){ setMiCuentaTab(tab||"anuncios"); setShowMiCuenta(true); } else { setShowAuth(true); } }}
           onLegal={(tab)=>{ setLegalTab(tab||"terminos"); setView("legal"); }}
           onComoPublicar={()=>setView("comoPublicar")}
+          selAnuncio={selAnuncio} setSelAnuncio={setSelAnuncio}
+          selTienda={selTienda}   setSelTienda={setSelTienda}
         />
       )}
 
