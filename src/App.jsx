@@ -2200,9 +2200,10 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                   const editando = editandoId===a.id;
 
                   return (
-                    <div key={a.id} style={{ display:"flex",alignItems:"center",gap:10,padding:"12px",
+                    <div key={a.id} style={{ display:"flex",flexDirection:"column",
                       border:`1.5px solid ${sel?P:vencido?ER+"44":BR}`,borderRadius:12,
-                      background:sel?`${P}08`:vencido?"#FFF5F5":SF,transition:"all .2s" }}>
+                      background:sel?`${P}08`:vencido?"#FFF5F5":SF,transition:"all .2s",overflow:"hidden" }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:10,padding:"12px 12px 8px" }}>
 
                       {/* Checkbox */}
                       <input type="checkbox" checked={sel}
@@ -2256,57 +2257,38 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                         )}
                       </div>
 
-                      {/* Visitas */}
-                      <div style={{ width:60,textAlign:"center",flexShrink:0 }}>
-                        <div style={{ fontSize:16,fontWeight:800,color:TX }}>{a.vistas||0}</div>
-                        <div style={{ fontSize:10,color:TL }}>visitas</div>
-                      </div>
-
-                      {/* Estado badge */}
-                      <div style={{ width:70,textAlign:"center",flexShrink:0 }}>
-                        <span style={{ display:"inline-block",padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,
-                          background:vencido?ER+"22":a.status==="activo"?OK+"22":WA+"22",
-                          color:vencido?ER:a.status==="activo"?OK:WA }}>
-                          {vencido?"vencido":a.status==="activo"?"activo":"pausado"}
-                        </span>
-                      </div>
-
-                      {/* Acciones */}
-                      <div style={{ width:120,display:"flex",flexDirection:"column",gap:4,flexShrink:0 }}>
-                        {/* Editar */}
-                        {!editando && (
+                      </div>{/* fin fila info */}
+                      </div>{/* fin fila superior */}
+                      {/* Botones acción - fila inferior responsive */}
+                      {!editando && (
+                        <div style={{ display:"flex",gap:6,padding:"8px 12px 10px",flexWrap:"wrap",borderTop:`1px solid ${BR}` }}>
                           <button onClick={()=>{ setEditandoId(a.id); setEditTitulo(a.titulo); setEditPrecio(a.precio||""); }}
-                            style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${P}`,color:P,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
+                            style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:P,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
                             ✏️ Editar
                           </button>
-                        )}
-                        {/* Modificar fotos */}
-                        <button onClick={()=>setShowEditFotos(a)}
-                          style={{ padding:"4px 0",borderRadius:6,border:`1px solid #0EA5E9`,color:"#0EA5E9",background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>
-                          📷 Fotos
-                        </button>
-                        {/* Destacar */}
-                        {(!a.plan||a.plan==="cuarzo") && (
-                          <button onClick={()=>setShowDestacar(a)}
-                            style={{ padding:"4px 0",borderRadius:6,border:"1px solid #F59E0B",color:"#fff",background:"linear-gradient(135deg,#F59E0B,#D97706)",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>
-                            ⭐ Destacar
+                          <button onClick={()=>setShowEditFotos(a)}
+                            style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:"1px solid #0EA5E9",color:"#0EA5E9",background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
+                            📷 Fotos
                           </button>
-                        )}
-                        {/* Pausar / Activar */}
-                        {!vencido && (
-                          a.status==="activo"
-                            ? <button onClick={()=>handleSuspender(a.id)} style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>⏸ Pausar</button>
-                            : <button onClick={()=>handleActivar(a.id)} style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>▶ Activar</button>
-                        )}
-                        {/* Renovar */}
-                        {(vencido||porVencer) && (
-                          esPago
-                            ? <button onClick={()=>setShowRenovarPago(a)} style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${P}`,color:"#fff",background:P,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>🔄 Renovar</button>
-                            : <button onClick={()=>handleRenovarGratis(a.id)} disabled={renovandoId===a.id} style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${OK}`,color:"#fff",background:OK,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>{renovandoId===a.id?"...":"🔄 Gratis"}</button>
-                        )}
-                        {/* Borrar */}
-                        <button onClick={()=>handleEliminar(a.id)} style={{ padding:"4px 0",borderRadius:6,border:`1px solid ${ER}`,color:ER,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit" }}>🗑 Borrar</button>
-                      </div>
+                          {(!a.plan||a.plan==="cuarzo") && (
+                            <button onClick={()=>setShowDestacar(a)}
+                              style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:"1px solid #F59E0B",color:"#fff",background:"linear-gradient(135deg,#F59E0B,#D97706)",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
+                              ⭐ Destacar
+                            </button>
+                          )}
+                          {!vencido && (
+                            a.status==="activo"
+                              ? <button onClick={()=>handleSuspender(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>⏸ Pausar</button>
+                              : <button onClick={()=>handleActivar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>▶ Activar</button>
+                          )}
+                          {(vencido||porVencer) && (
+                            esPago
+                              ? <button onClick={()=>setShowRenovarPago(a)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:"#fff",background:P,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>🔄 Renovar</button>
+                              : <button onClick={()=>handleRenovarGratis(a.id)} disabled={renovandoId===a.id} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:"#fff",background:OK,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>{renovandoId===a.id?"...":"🔄 Gratis"}</button>
+                          )}
+                          <button onClick={()=>handleEliminar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${ER}`,color:ER,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>🗑 Borrar</button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
