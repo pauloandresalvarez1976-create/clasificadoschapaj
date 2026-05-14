@@ -245,7 +245,8 @@ function AuthModal({ onClose, onSuccess }) {
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
       display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
       <div style={{ background:SF,borderRadius:20,padding:32,width:"100%",maxWidth:400,
-        boxShadow:"0 24px 80px rgba(0,0,0,.3)" }} onClick={e=>e.stopPropagation()}>
+        boxShadow:"0 24px 80px rgba(0,0,0,.3)",position:"relative" }} onClick={e=>e.stopPropagation()}>
+        <button onClick={onClose} style={{ position:"absolute",top:14,right:16,background:"#F3F4F6",border:"none",cursor:"pointer",fontSize:16,color:TL,width:30,height:30,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,lineHeight:1 }} title="Cerrar">✕</button>
         <div style={{ textAlign:"center",marginBottom:24 }}>
           <div style={{ fontSize:36,marginBottom:8 }}>🚗</div>
           <h2 style={{ fontFamily:"'Georgia',serif",fontSize:20,margin:"0 0 4px",color:AC }}>Clasificados Chapa "J"</h2>
@@ -304,7 +305,6 @@ function AuthModal({ onClose, onSuccess }) {
           </>
         )}
 
-        <button onClick={onClose} style={{ position:"absolute",top:14,right:16,background:"none",border:"none",cursor:"pointer",fontSize:20,color:TL }}>✕</button>
       </div>
     </div>
   );
