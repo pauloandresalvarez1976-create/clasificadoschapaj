@@ -7203,7 +7203,14 @@ export default function App() {
       if (u) {
         const q = query(collection(db,"usuarios"),where("uid","==",u.uid));
         const snap = await getDocs(q);
-        if (!snap.empty) setUserData({id:snap.docs[0].id,...snap.docs[0].data()});
+        if (!snap.empty) {
+          const data = {id:snap.docs[0].id,...snap.docs[0].data()};
+          if (u.emailVerified && !data.verificado) {
+            await updateDoc(snap.docs[0].ref, { verificado: true });
+            data.verificado = true;
+          }
+          setUserData(data);
+        }
       } else { setUserData(null); }
     });
     return ()=>unsub();
