@@ -4519,9 +4519,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       </div>
 
-      {/* Banner publicitario GRANDE — después del hero */}
-      <BannerZone banners={homeBanners} pos="hero-top"/>
-
       {/* Stats */}
       <div style={{ background:AC,padding:"14px 20px" }}>
         <div style={{ maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"center",gap:"clamp(20px,6vw,60px)",flexWrap:"wrap" }}>
@@ -4534,6 +4531,9 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
           ))}
         </div>
       </div>
+
+      {/* Banner publicitario GRANDE */}
+      <BannerZone banners={homeBanners} pos="hero-top"/>
 
       {vistaActiva === "inicio" && (
         <>
