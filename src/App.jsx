@@ -6392,8 +6392,9 @@ function BannerZone({ banners, pos }) {
             boxShadow: isHero?"none":"0 4px 20px rgba(0,0,0,.1)", marginBottom:10 }}>
           <img src={b.img} alt={b.name||"Banner publicitario"} style={{
             width:"100%", height:"auto",
-            maxHeight: isHero ? 400 : pos==="home-top" ? 160 : 200,
-            objectFit: isHero ? "cover" : "contain",
+            maxHeight: isHero ? "none" : pos==="home-top" ? 160 : 200,
+            objectFit: isHero ? "contain" : "contain",
+            background: isHero ? "#fff" : "#fff",
             display:"block", background:"#fff"
           }}/>
         </a>
