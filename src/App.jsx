@@ -1008,7 +1008,8 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
 
   const handleWA = () => {
     const num = `549${anuncio.contactoWA}`;
-    const msg = encodeURIComponent(`Hola! Vi tu anuncio "${anuncio.titulo}" en Clasificados Chapa J y me interesa. ¿Está disponible?`);
+    const link = `https://clasificadoschapaj.com.ar/?anuncio=${anuncio.id}`;
+    const msg = encodeURIComponent(`Hola! Vi tu anuncio "${anuncio.titulo}" en Clasificados Chapa J y me interesa. ¿Está disponible?\n\n🔗 ${link}`);
     window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
   };
 
