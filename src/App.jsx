@@ -7420,6 +7420,56 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo, rol="admin" }) {
   const [cfgLoaded,setCfgLoaded]=useState(false);
   const isMobile = window.innerWidth < 768;
 
+  // NOTIFICACIONES ADMIN
+  const [adminAlertas, setAdminAlertas] = useState([]);
+  const [toastAlertas, setToastAlertas] = useState([]);
+  const prevCountRef = useRef(null);
+
+  useEffect(()=>{
+    const q = query(
+      collection(db,"alertas"),
+      where("uid","==","admin"),
+      where("leido","==",false),
+      orderBy("createdAt","desc"),
+      limit(50)
+    );
+    const unsub = onSnapshot(q, snap=>{
+      const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+      setAdminAlertas(items);
+      if (prevCountRef.current !== null && items.length > prevCountRef.current) {
+        const nuevas = items.slice(0, items.length - prevCountRef.current);
+        nuevas.forEach(alerta => {
+          const toastId = Date.now() + Math.random();
+          setToastAlertas(prev=>[...prev, { ...alerta, _toastId: toastId }]);
+        });
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.4);
+        } catch(e){}
+      }
+      prevCountRef.current = items.length;
+    },()=>{});
+    return()=>unsub();
+  },[]);
+
+  const alertasUsers      = adminAlertas.filter(a=>a.tipo==="verificacion").length;
+  const alertasModeracion = adminAlertas.filter(a=>["denuncia","revision","suspension"].includes(a.tipo)).length;
+  const totalAlertas      = adminAlertas.length;
+
+  useEffect(()=>{
+    if(!toastAlertas.length) return;
+    const t = setTimeout(()=>setToastAlertas(prev=>prev.slice(1)), 6000);
+    return()=>clearTimeout(t);
+  },[toastAlertas]);
+
   // Cargar cfg desde Firestore al montar
   useEffect(()=>{
     getDoc(doc(db,"config","site")).then(snap=>{
@@ -7502,7 +7552,9 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo, rol="admin" }) {
               onMouseLeave={e=>{if(!isA)e.currentTarget.style.background="transparent";}}
             >
               <span style={{ fontSize:18,flexShrink:0 }}>{item.icon}</span>
-              {(!collapsed||isMobile) && <span style={{ whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{item.label}</span>}
+              {(!collapsed||isMobile) && <span style={{ whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1 }}>{item.label}</span>}
+              {(!collapsed||isMobile) && item.id==="users"      && alertasUsers>0      && <span style={{ background:"#EF4444",color:"#fff",borderRadius:20,fontSize:10,fontWeight:800,minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 5px" }}>{alertasUsers}</span>}
+              {(!collapsed||isMobile) && item.id==="moderation" && alertasModeracion>0 && <span style={{ background:"#EF4444",color:"#fff",borderRadius:20,fontSize:10,fontWeight:800,minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 5px" }}>{alertasModeracion}</span>}
             </button>
           );
         })}
@@ -7565,10 +7617,16 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo, rol="admin" }) {
             </div>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div onClick={()=>setActive("moderation")} style={{
-              padding:"5px 10px", borderRadius:20, background:DANGER+"18",
-              color:DANGER, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap"
-            }}>🚨 7 pend.</div>
+            {totalAlertas>0 && (
+              <div onClick={()=>setActive("alerts")} style={{
+                padding:"5px 12px", borderRadius:20, background:DANGER+"18",
+                color:DANGER, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap",
+                display:"flex", alignItems:"center", gap:5,
+                border:`1px solid ${DANGER}33`,
+              }}>
+                🔔 <span style={{ background:DANGER,color:"#fff",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:800 }}>{totalAlertas}</span>
+              </div>
+            )}
             <div style={{ width:34,height:34,borderRadius:"50%",background:PRIMARY,color:"#fff",
               display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,cursor:"pointer",flexShrink:0 }}>A</div>
           </div>
@@ -7579,6 +7637,26 @@ function AdminPanel({ onExit, globalCfg, setGlobalCfg, combo, rol="admin" }) {
           {PAGE[active]}
         </div>
       </main>
+
+      {/* TOASTS DE NOTIFICACIONES */}
+      <div style={{ position:"fixed", bottom:24, right:24, zIndex:9999, display:"flex", flexDirection:"column", gap:10, maxWidth:320 }}>
+        {toastAlertas.map(toast=>(
+          <div key={toast._toastId} style={{
+            background:"#1A1A2E", color:"#fff", borderRadius:14, padding:"14px 16px",
+            boxShadow:"0 8px 32px rgba(0,0,0,.4)", display:"flex", alignItems:"flex-start", gap:12,
+            borderLeft:`4px solid ${toast.tipo==="verificacion"?"#10B981":toast.tipo==="denuncia"?"#EF4444":"#F59E0B"}`,
+            animation:"fadeInUp .3s ease",
+          }}>
+            <div style={{ fontSize:22, flexShrink:0 }}>{toast.icono||"🔔"}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:800, fontSize:13, marginBottom:3 }}>{toast.titulo||"Nueva notificación"}</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,.7)", lineHeight:1.4 }}>{toast.msg}</div>
+            </div>
+            <button onClick={()=>setToastAlertas(prev=>prev.filter(t=>t._toastId!==toast._toastId))}
+              style={{ background:"none",border:"none",color:"rgba(255,255,255,.4)",cursor:"pointer",fontSize:16,flexShrink:0,padding:0 }}>✕</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
