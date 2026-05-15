@@ -2347,6 +2347,11 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                                 {vencido?"⛔ Vencido":porVencer?`⚠️ Vence en ${dias} día${dias===1?"":"s"}`:`✅ Vence en ${dias} días`}
                               </div>
                             )}
+                            {a.status==="suspendido" && (
+                              <div style={{ fontSize:10,fontWeight:700,marginTop:3,color:"#DC2626" }}>
+                                🚫 Suspendido por moderación{a.motivoSuspension?` — ${a.motivoSuspension.slice(0,60)}...`:""}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -2369,7 +2374,27 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                               ⭐ Destacar
                             </button>
                           )}
-                          {!vencido && (
+                          {a.status==="suspendido" && (
+                            <button onClick={async()=>{
+                              if(!window.confirm("¿Solicitar revisión de este anuncio? El administrador lo revisará.")) return;
+                              // Buscar la denuncia relacionada y cambiar a revisando
+                              const q = query(collection(db,"denuncias"),where("anuncioId","==",a.id),where("status","==","revisando"));
+                              const snap = await getDocs(q);
+                              if(!snap.empty) {
+                                await updateDoc(doc(db,"denuncias",snap.docs[0].id),{ solicitaRevision:true, revisionSolicitadaEn: serverTimestamp() });
+                              }
+                              // Agregar alerta al admin
+                              await addDoc(collection(db,"alertas"),{
+                                uid:"admin", msg:`El usuario corrigió su anuncio "${a.titulo}" y solicita revisión para reactivarlo.`,
+                                tipo:"revision", icono:"🔄", titulo:"Solicitud de revisión",
+                                leido:false, anuncioId:a.id, createdAt: serverTimestamp(),
+                              });
+                              alert("✅ Solicitud enviada. El moderador revisará tu anuncio a la brevedad.");
+                            }}
+                              style={{ flex:"1 1 120px",padding:"5px 4px",borderRadius:6,border:"1px solid #F59E0B",color:"#fff",background:"linear-gradient(135deg,#F59E0B,#D97706)",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
+                              🔄 Solicitar revisión
+                            </button>
+                          )}
                             a.status==="activo"
                               ? <button onClick={()=>handleSuspender(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>⏸ Pausar</button>
                               : <button onClick={()=>handleActivar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>▶ Activar</button>
@@ -6588,33 +6613,88 @@ function AModeration() {
   },[]);
 
   useEffect(()=>{
-    getDocs(query(collection(db,"denuncias"),orderBy("createdAt","desc")))
-      .then(snap=>{ setReports(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); })
+    const q = query(collection(db,"denuncias"),orderBy("createdAt","desc"));
+    getDocs(q).then(snap=>{ setReports(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); })
       .catch(()=>setLoading(false));
   },[]);
 
-  const handleResolve = async (id,status) => {
-    await updateDoc(doc(db,"denuncias",id),{status});
-    setReports(prev=>prev.map(r=>r.id===id?{...r,status}:r));
+  const enviarAlerta = async (uid, msg) => {
+    if(!uid) return;
+    await addDoc(collection(db,"alertas"),{
+      uid, msg, tipo:"moderacion", icono:"⚠️", titulo:"Aviso de moderación",
+      leido:false, createdAt: serverTimestamp(),
+    });
   };
 
-  const handleDeleteAd = async (report) => {
-    if(!window.confirm("¿Eliminar el anuncio denunciado?")) return;
-    await deleteDoc(doc(db,"anuncios",report.anuncioId));
-    await updateDoc(doc(db,"denuncias",report.id),{status:"resuelto"});
-    setReports(prev=>prev.map(r=>r.id===report.id?{...r,status:"resuelto"}:r));
+  const handleResolver = async (id) => {
+    await updateDoc(doc(db,"denuncias",id),{status:"resuelto", resolvedAt: serverTimestamp()});
+    setReports(prev=>prev.map(r=>r.id===id?{...r,status:"resuelto"}:r));
+  };
+
+  const handleAdvertirSuspender = async (report) => {
+    const motivo = window.prompt(`Motivo de advertencia (se enviará como alerta al usuario):`, "Tu anuncio fue suspendido por incumplir las normas. Editalo y solicitá revisión para reactivarlo.");
+    if(motivo===null) return;
+    try {
+      if(report.anuncioId) {
+        await updateDoc(doc(db,"anuncios",report.anuncioId),{
+          status:"suspendido", suspendidoPor:"moderacion",
+          motivoSuspension: motivo, updatedAt: serverTimestamp(),
+        });
+      }
+      await enviarAlerta(report.vendedorUid, motivo);
+      await updateDoc(doc(db,"denuncias",report.id),{
+        status:"revisando", accion:"advertido_suspendido",
+        motivoAdmin: motivo, updatedAt: serverTimestamp(),
+      });
+      setReports(prev=>prev.map(r=>r.id===report.id?{...r,status:"revisando",accion:"advertido_suspendido",motivoAdmin:motivo}:r));
+      alert("✅ Anuncio suspendido y alerta enviada al usuario.");
+    } catch(e) { alert("Error: "+e.message); }
+  };
+
+  const handleAprobarRevision = async (report) => {
+    if(!window.confirm("¿Reactivar el anuncio y cerrar la denuncia?")) return;
+    try {
+      if(report.anuncioId) {
+        await updateDoc(doc(db,"anuncios",report.anuncioId),{
+          status:"activo", suspendidoPor:null, motivoSuspension:null, updatedAt: serverTimestamp(),
+        });
+      }
+      await enviarAlerta(report.vendedorUid, `Tu anuncio fue revisado y reactivado. ¡Gracias por corregirlo!`);
+      await updateDoc(doc(db,"denuncias",report.id),{status:"resuelto", accion:"aprobado", resolvedAt: serverTimestamp()});
+      setReports(prev=>prev.map(r=>r.id===report.id?{...r,status:"resuelto",accion:"aprobado"}:r));
+    } catch(e) { alert("Error: "+e.message); }
+  };
+
+  const handleEliminarAnuncio = async (report) => {
+    if(!window.confirm(`¿Eliminar el anuncio? Esta acción no se puede deshacer.`)) return;
+    try {
+      if(report.anuncioId) await deleteDoc(doc(db,"anuncios",report.anuncioId));
+      await enviarAlerta(report.vendedorUid, `Tu anuncio fue eliminado por incumplir las normas de la plataforma.`);
+      await updateDoc(doc(db,"denuncias",report.id),{status:"resuelto", accion:"eliminado", resolvedAt: serverTimestamp()});
+      setReports(prev=>prev.map(r=>r.id===report.id?{...r,status:"resuelto",accion:"eliminado"}:r));
+    } catch(e) { alert("Error: "+e.message); }
   };
 
   const pending = reports.filter(r=>r.status==="pendiente").length;
+  const revisando = reports.filter(r=>r.status==="revisando").length;
 
   return (
     <div>
       <SecTitle sub="Denuncias y moderación de contenido">🚨 Moderación</SecTitle>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:18 }}>
         <StatCard icon="⚠️" label="Denuncias pendientes" value={pending.toString()} color={DANGER}/>
-        <StatCard icon="🔍" label="En revisión" value={reports.filter(r=>r.status==="revisando").length.toString()} color={WARNING}/>
+        <StatCard icon="🔍" label="En revisión" value={revisando.toString()} color={WARNING}/>
         <StatCard icon="✅" label="Resueltas" value={reports.filter(r=>r.status==="resuelto").length.toString()} color={SUCCESS}/>
       </div>
+      <Card style={{ marginBottom:14, background:"#FFFBEB", border:"1px solid #FDE68A" }}>
+        <div style={{ fontWeight:700, fontSize:13, color:"#92400E", marginBottom:8 }}>📖 Guía de acciones</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:12, fontSize:12, color:"#78350F" }}>
+          <span>✅ <b>Resolver</b> — denuncia falsa, el anuncio está bien</span>
+          <span>⚠️ <b>Advertir + Suspender</b> — pausa el anuncio y avisa al usuario para que corrija</span>
+          <span>🔄 <b>Aprobar revisión</b> — el usuario corrigió, reactivar el anuncio</span>
+          <span>🗑️ <b>Eliminar</b> — elimina el anuncio definitivamente</span>
+        </div>
+      </Card>
       <Card style={{ marginBottom:18 }}>
         <div style={{ fontWeight:700, marginBottom:12 }}>📋 Denuncias recibidas</div>
         {loading ? <div style={{ textAlign:"center",padding:30,color:TEXT_LIGHT }}>Cargando...</div> :
@@ -6624,19 +6704,44 @@ function AModeration() {
               <div>No hay denuncias recibidas</div>
             </div>
           ) : (
-            <Tbl headers={["Anuncio","Denunciante","Motivo","Fecha","Estado","Acciones"]} rows={reports.map(r=>[
-              <span style={{ fontWeight:600,fontSize:13 }}>{r.tituloAnuncio||"Anuncio eliminado"}</span>,
-              <span style={{ color:INFO,fontSize:12 }}>{r.denuncianteEmail||"—"}</span>,
-              <span style={{ fontSize:12 }}>{r.motivo||"—"}</span>,
-              <span style={{ fontSize:11,color:TEXT_LIGHT }}>{r.createdAt?.toDate?.()?.toLocaleDateString("es-AR")||"—"}</span>,
-              <Pill label={r.status||"pendiente"} color={r.status==="pendiente"?WARNING:r.status==="revisando"?INFO:SUCCESS}/>,
-              <div style={{ display:"flex",gap:4 }}>
-                {r.status!=="resuelto" && <>
-                  <Btn size="sm" outline color={SUCCESS} onClick={()=>handleResolve(r.id,"resuelto")}>✅</Btn>
-                  <Btn size="sm" outline color={DANGER} onClick={()=>handleDeleteAd(r)}>🗑️</Btn>
-                </>}
-              </div>
-            ])} />
+            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+              {reports.map(r=>(
+                <div key={r.id} style={{ border:`1.5px solid ${r.status==="pendiente"?DANGER+"44":r.status==="revisando"?WARNING+"44":"#D1FAE5"}`,
+                  borderRadius:12, padding:"14px 16px", background:r.status==="resuelto"?"#F0FDF4":r.status==="revisando"?"#FFFBEB":"#FFF5F5" }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:8 }}>
+                    <div>
+                      <div style={{ fontWeight:700,fontSize:14 }}>{r.anuncioTitulo||r.tituloAnuncio||"Anuncio eliminado"}</div>
+                      <div style={{ fontSize:12,color:TEXT_LIGHT,marginTop:2 }}>
+                        Denunciante: <span style={{ color:INFO }}>{r.denuncianteEmail||"—"}</span>
+                        {r.createdAt?.toDate && <span> · {r.createdAt.toDate().toLocaleDateString("es-AR")}</span>}
+                      </div>
+                      <div style={{ fontSize:12,marginTop:4 }}><b>Motivo:</b> {r.motivo||"—"}{r.detalle && <span style={{ color:TEXT_LIGHT }}> — {r.detalle}</span>}</div>
+                      {r.motivoAdmin && (
+                        <div style={{ fontSize:12,color:"#92400E",marginTop:4,background:"#FFFBEB",padding:"4px 8px",borderRadius:6 }}>
+                          <b>Acción tomada:</b> {r.motivoAdmin}
+                        </div>
+                      )}
+                    </div>
+                    <Pill label={r.status||"pendiente"} color={r.status==="pendiente"?DANGER:r.status==="revisando"?WARNING:SUCCESS}/>
+                  </div>
+                  <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                    {r.status==="pendiente" && <>
+                      <Btn size="sm" outline color={SUCCESS} onClick={()=>handleResolver(r.id)}>✅ Resolver (falsa)</Btn>
+                      <Btn size="sm" outline color={WARNING} onClick={()=>handleAdvertirSuspender(r)}>⚠️ Advertir + Suspender</Btn>
+                      <Btn size="sm" outline color={DANGER} onClick={()=>handleEliminarAnuncio(r)}>🗑️ Eliminar</Btn>
+                    </>}
+                    {r.status==="revisando" && <>
+                      <span style={{ fontSize:12,color:WARNING,fontWeight:600 }}>⏳ Esperando corrección del usuario</span>
+                      <Btn size="sm" outline color={SUCCESS} onClick={()=>handleAprobarRevision(r)}>🔄 Aprobar y reactivar</Btn>
+                      <Btn size="sm" outline color={DANGER} onClick={()=>handleEliminarAnuncio(r)}>🗑️ Eliminar igual</Btn>
+                    </>}
+                    {r.status==="resuelto" && (
+                      <span style={{ fontSize:12,color:SUCCESS,fontWeight:600 }}>✅ Resuelta{r.accion ? ` — ${r.accion}` : ""}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           )
         }
       </Card>
