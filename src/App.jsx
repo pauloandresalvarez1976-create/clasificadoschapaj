@@ -1257,86 +1257,125 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
     <nav style={{ position:"sticky",top:0,zIndex:100,background:scrolled?"rgba(255,255,255,.97)":SF,
       borderBottom:`1px solid ${BR}`,backdropFilter:"blur(12px)",
       boxShadow:scrolled?"0 2px 20px rgba(0,0,0,.08)":"none",transition:"box-shadow .3s" }}>
-      {/* Fila 1: Logo + Acciones */}
-      <div style={{ maxWidth:1200,margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",gap:10,height:56 }}>
-        <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0,cursor:"pointer" }}
-          onClick={()=>{ onVerTiendas && setVistaActiva("inicio"); window.scrollTo({top:0,behavior:"smooth"}); }}>
-          <div style={{ width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:`0 4px 12px ${P}44`,overflow:"hidden" }}>
-            {siteInfo.logo && siteInfo.logo.startsWith("http")
-              ? <img src={siteInfo.logo} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>
-              : <span>{siteInfo.logo||"🚗"}</span>
-            }
+
+      {isMob ? (
+        /* ── MOBILE: 2 filas ── */
+        <div style={{ padding:"8px 12px 6px" }}>
+          {/* Fila 1: Logo + íconos + publicar */}
+          <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
+            {/* Logo */}
+            <div style={{ display:"flex",alignItems:"center",gap:6,cursor:"pointer",flexShrink:0 }}
+              onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}>
+              <div style={{ width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${P},${PD})`,
+                display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0 }}>
+                {siteInfo.logo&&siteInfo.logo.startsWith("http")
+                  ? <img src={siteInfo.logo} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>
+                  : <span style={{ fontSize:16 }}>{siteInfo.logo||"🚗"}</span>}
+              </div>
+              <span style={{ fontFamily:"'Georgia',serif",fontWeight:700,fontSize:13,color:AC,lineHeight:1.1 }}>Chapa J</span>
+            </div>
+
+            <div style={{ flex:1 }}/>
+
+            {/* Íconos usuario */}
+            {user ? (
+              <>
+                <button onClick={onMensajes} style={{ position:"relative",width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0 }}>
+                  ✉️
+                  {unreadMsgs>0&&<span style={{ position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center" }}>{unreadMsgs>9?"9+":unreadMsgs}</span>}
+                </button>
+                <button onClick={onMiCuenta} style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                  <div style={{ width:26,height:26,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
+                    {(user.displayName||user.email||"U")[0].toUpperCase()}
+                  </div>
+                </button>
+              </>
+            ) : (
+              <button onClick={onLogin} style={{ padding:"7px 12px",borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",color:TX,cursor:"pointer",fontWeight:600,fontSize:12,fontFamily:"inherit",flexShrink:0 }}>
+                Mi Cuenta
+              </button>
+            )}
+            <button onClick={()=>setDark(d=>!d)} style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontSize:17,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              {dark?"☀️":"🌙"}
+            </button>
+            <button onClick={user?onPublicar:onLogin} style={{ padding:"7px 14px",borderRadius:8,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",boxShadow:`0 3px 10px ${P}44`,whiteSpace:"nowrap",flexShrink:0 }}>
+              + Publicar
+            </button>
           </div>
-          <div>
+          {/* Fila 2: Búsqueda full width */}
+          <div style={{ display:"flex" }}>
+            <div style={{ position:"relative",flex:1 }}>
+              <span style={{ position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:TL,pointerEvents:"none" }}>🔍</span>
+              <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
+                placeholder="Buscar en Clasificados Chapa J..."
+                style={{ width:"100%",height:38,padding:"0 32px 0 34px",borderRadius:"10px 0 0 10px",
+                  border:`1.5px solid ${BR}`,borderRight:"none",outline:"none",fontSize:13,color:TX,background:BG,fontFamily:"inherit",boxSizing:"border-box" }}
+                onFocus={e=>e.target.style.borderColor=P} onBlur={e=>e.target.style.borderColor=BR}
+                onKeyDown={e=>{ if(e.key==="Enter"){ e.target.blur(); onSearch&&onSearch(); } }}
+              />
+              {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:13,color:TL }}>✕</button>}
+            </div>
+            <button onClick={()=>onSearch&&onSearch()} style={{ height:38,padding:"0 14px",background:P,color:"#fff",border:"none",borderRadius:"0 10px 10px 0",cursor:"pointer",fontWeight:700,fontSize:14,flexShrink:0 }}>🔍</button>
+          </div>
+        </div>
+      ) : (
+        /* ── DESKTOP: 1 fila ── */
+        <div style={{ maxWidth:1200,margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",gap:10,height:56 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0,cursor:"pointer" }}
+            onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}>
+            <div style={{ width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,
+              display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:`0 4px 12px ${P}44`,overflow:"hidden" }}>
+              {siteInfo.logo&&siteInfo.logo.startsWith("http")
+                ? <img src={siteInfo.logo} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>
+                : <span>{siteInfo.logo||"🚗"}</span>}
+            </div>
             <div style={{ fontFamily:"'Georgia',serif",fontWeight:700,fontSize:15,color:AC,lineHeight:1.1 }}>Clasificados Chapa J</div>
           </div>
-        </div>
-
-        {/* Barra de búsqueda — en móvil ocupa todo el espacio disponible */}
-        <div style={{ flex:1,display:"flex",maxWidth:isMob?"100%":480 }}>
-          <div style={{ position:"relative",flex:1 }}>
-            <span style={{ position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:TL }}>🔍</span>
-            <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
-              placeholder={isMob?'Buscar...':`Buscar en ${siteInfo.name||'Clasificados'}...`}
-              style={{ width:"100%",height:38,padding:"0 10px 0 34px",borderRadius:"8px 0 0 8px",
-                border:`1.5px solid ${BR}`,borderRight:"none",outline:"none",fontSize:13,color:TX,background:BG,fontFamily:"inherit" }}
-              onFocus={e=>e.target.style.borderColor=P} onBlur={e=>e.target.style.borderColor=BR}
-              onKeyDown={e=>{ if(e.key==="Enter"){ e.target.blur(); onSearch&&onSearch(); } }}
-            />
-            {searchQuery && (
-              <button onClick={()=>setSearchQuery("")} style={{ position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:TL,lineHeight:1 }}>✕</button>
-            )}
+          <div style={{ flex:1,display:"flex",maxWidth:480 }}>
+            <div style={{ position:"relative",flex:1 }}>
+              <span style={{ position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:TL }}>🔍</span>
+              <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
+                placeholder={`Buscar en ${siteInfo.name||"Clasificados"}...`}
+                style={{ width:"100%",height:38,padding:"0 10px 0 34px",borderRadius:"8px 0 0 8px",
+                  border:`1.5px solid ${BR}`,borderRight:"none",outline:"none",fontSize:13,color:TX,background:BG,fontFamily:"inherit" }}
+                onFocus={e=>e.target.style.borderColor=P} onBlur={e=>e.target.style.borderColor=BR}
+                onKeyDown={e=>{ if(e.key==="Enter"){ e.target.blur(); onSearch&&onSearch(); } }}
+              />
+              {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{ position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:TL,lineHeight:1 }}>✕</button>}
+            </div>
+            <button onClick={()=>onSearch&&onSearch()} style={{ height:38,padding:"0 12px",background:P,color:"#fff",border:"none",borderRadius:"0 8px 8px 0",cursor:"pointer",fontWeight:600,fontSize:13,fontFamily:"inherit" }}>Buscar</button>
           </div>
-          <button onClick={()=>{ onSearch&&onSearch(); }} style={{ height:38,padding:"0 12px",background:P,color:"#fff",border:"none",
-            borderRadius:"0 8px 8px 0",cursor:"pointer",fontWeight:600,fontSize:13,fontFamily:"inherit" }}>{isMob?"🔍":"Buscar"}</button>
-        </div>
-
-        <div style={{ display:"flex",alignItems:"center",gap:8,marginLeft:"auto" }}>
-          {user ? (
-            <>
-              <button onClick={onMensajes} title="Mensajes" style={{ position:"relative",width:38,height:38,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>
-                ✉️
-                {unreadMsgs>0 && (
-                  <span style={{ position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1 }}>
-                    {unreadMsgs>9?"9+":unreadMsgs}
-                  </span>
-                )}
-              </button>
-              <button onClick={onMiCuenta} style={{ display:"flex",alignItems:"center",gap:isMob?0:8,padding:isMob?"6px":"6px 12px",
-                borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontFamily:"inherit" }}>
-                <div style={{ width:28,height:28,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
-                  {(user.displayName||user.email||"U")[0].toUpperCase()}
-                </div>
-                {!isMob && <span style={{ fontSize:13,fontWeight:600,color:TX }}>{user.displayName?.split(" ")[0]||"Mi cuenta"}</span>}
-              </button>
-              {!isMob && <button onClick={onLogout} title="Cerrar sesión" style={{ padding:"7px 14px",borderRadius:8,border:`1.5px solid ${ER}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontSize:13,fontWeight:700,color:ER,fontFamily:"inherit",transition:"all .2s" }}
-                onMouseEnter={e=>{e.currentTarget.style.background="#FEF2F2";}}
-                onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                Salir
-              </button>}
-              {isMob && <button onClick={onLogout} title="Cerrar sesión" style={{ padding:"6px 8px",borderRadius:8,border:`1.5px solid ${ER}`,background:"transparent",cursor:"pointer",fontSize:16,color:ER,lineHeight:1 }}>🚪</button>}
-            </>
-          ) : (
-            <button onClick={onLogin} style={{ padding:"8px 14px",borderRadius:8,border:`1.5px solid ${BR}`,
-              background:"transparent",color:TX,cursor:"pointer",fontWeight:600,fontSize:13,fontFamily:"inherit" }}>
-              Mi Cuenta
+          <div style={{ display:"flex",alignItems:"center",gap:8,marginLeft:"auto" }}>
+            {user ? (
+              <>
+                <button onClick={onMensajes} title="Mensajes" style={{ position:"relative",width:38,height:38,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>
+                  ✉️
+                  {unreadMsgs>0&&<span style={{ position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1 }}>{unreadMsgs>9?"9+":unreadMsgs}</span>}
+                </button>
+                <button onClick={onMiCuenta} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontFamily:"inherit" }}>
+                  <div style={{ width:28,height:28,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
+                    {(user.displayName||user.email||"U")[0].toUpperCase()}
+                  </div>
+                  <span style={{ fontSize:13,fontWeight:600,color:TX }}>{user.displayName?.split(" ")[0]||"Mi cuenta"}</span>
+                </button>
+                <button onClick={onLogout} style={{ padding:"7px 14px",borderRadius:8,border:`1.5px solid ${ER}`,background:"transparent",cursor:"pointer",fontSize:13,fontWeight:700,color:ER,fontFamily:"inherit" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  Salir
+                </button>
+              </>
+            ) : (
+              <button onClick={onLogin} style={{ padding:"8px 14px",borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",color:TX,cursor:"pointer",fontWeight:600,fontSize:13,fontFamily:"inherit" }}>Mi Cuenta</button>
+            )}
+            <button onClick={()=>setDark(d=>!d)} style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              {dark?"☀️":"🌙"}
             </button>
-          )}
-          {/* Botón modo oscuro */}
-          <button onClick={()=>setDark(d=>!d)} title={dark?"Modo claro":"Modo oscuro"}
-            style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",
-              cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-            {dark?"☀️":"🌙"}
-          </button>
-          <button onClick={user?onPublicar:onLogin} style={{ padding:"8px",borderRadius:8,
-            background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",
-            cursor:"pointer",fontWeight:700,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 12px ${P}44`,
-            whiteSpace:"nowrap", paddingLeft:isMob?10:18, paddingRight:isMob?10:18 }}>
-            {isMob ? "+ Publicar" : "+ Publicar GRATIS"}
-          </button>
+            <button onClick={user?onPublicar:onLogin} style={{ padding:"8px 18px",borderRadius:8,background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 12px ${P}44`,whiteSpace:"nowrap" }}>
+              + Publicar GRATIS
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ borderTop:`1px solid ${BR}`,overflowX:"auto",scrollbarWidth:"none" }}>
         <div style={{ maxWidth:1200,margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center" }}>
