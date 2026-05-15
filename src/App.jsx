@@ -2290,6 +2290,15 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const handleAccionLote = async (accion) => {
     if(!seleccionados.length) return;
     if(accion==="borrar" && !window.confirm(`¿Eliminar ${seleccionados.length} anuncio(s)?`)) return;
+    if(accion==="renovar") {
+      const nuevaFecha = new Date(); nuevaFecha.setDate(nuevaFecha.getDate()+30);
+      await Promise.all(seleccionados.map(id=>
+        updateDoc(doc(db,"anuncios",id),{ vencimientoAt:nuevaFecha, status:"activo", updatedAt:serverTimestamp() })
+      ));
+      setMisAnuncios(prev=>prev.map(a=>seleccionados.includes(a.id)?{...a,vencimientoAt:nuevaFecha,status:"activo"}:a));
+      setSeleccionados([]);
+      return;
+    }
     await Promise.all(seleccionados.map(id=>{
       if(accion==="borrar") return deleteDoc(doc(db,"anuncios",id));
       return updateDoc(doc(db,"anuncios",id),{ status:accion==="pausar"?"pausado":"activo", updatedAt:serverTimestamp() });
@@ -2407,6 +2416,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                 <div style={{ display:"flex",gap:6,marginLeft:"auto" }}>
                   <button onClick={()=>handleAccionLote("activo")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>✅ Activar</button>
                   <button onClick={()=>handleAccionLote("pausar")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>⏸ Pausar</button>
+                  <button onClick={()=>handleAccionLote("renovar")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${OK}`,color:"#fff",background:OK,cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>🔄 Renovar</button>
                   <button onClick={()=>handleAccionLote("borrar")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${ER}`,color:ER,background:"transparent",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>🗑 Borrar</button>
                   <button onClick={()=>setSeleccionados([])} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${BR}`,color:TL,background:"transparent",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>✕ Limpiar</button>
                 </div>
@@ -2437,7 +2447,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                 {anunciosFiltrados.map(a=>{
                   const dias = diasRestantes(a);
                   const vencido = dias !== null && dias <= 0;
-                  const porVencer = dias !== null && dias > 0 && dias <= 5;
+                  const porVencer = dias !== null && dias > 0 && dias <= 20;
                   const esPago = a.plan && a.plan !== "cuarzo";
                   const sel = seleccionados.includes(a.id);
                   const editando = editandoId===a.id;
@@ -2549,11 +2559,10 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                               ? <button onClick={()=>handleSuspender(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>⏸ Pausar</button>
                               : <button onClick={()=>handleActivar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>▶ Activar</button>
                           )}
-                          {(vencido||porVencer) && (
-                            esPago
-                              ? <button onClick={()=>setShowRenovarPago(a)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:"#fff",background:P,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>🔄 Renovar</button>
-                              : <button onClick={()=>handleRenovarGratis(a.id)} disabled={renovandoId===a.id} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:"#fff",background:OK,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>{renovandoId===a.id?"...":"🔄 Gratis"}</button>
-                          )}
+                          {esPago
+                            ? <button onClick={()=>setShowRenovarPago(a)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:"#fff",background:P,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>🔄 Renovar</button>
+                            : <button onClick={()=>handleRenovarGratis(a.id)} disabled={renovandoId===a.id} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:"#fff",background:OK,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>{renovandoId===a.id?"...":"🔄 Renovar"}</button>
+                          }
                           <button onClick={()=>handleEliminar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${ER}`,color:ER,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>🗑 Borrar</button>
                         </div>
                       )}
