@@ -1242,7 +1242,8 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
       boxShadow:scrolled?"0 2px 20px rgba(0,0,0,.08)":"none",transition:"box-shadow .3s" }}>
       {/* Fila 1: Logo + Acciones */}
       <div style={{ maxWidth:1200,margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",gap:10,height:56 }}>
-        <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0,cursor:"pointer" }}
+          onClick={()=>{ onVerTiendas && setVistaActiva("inicio"); window.scrollTo({top:0,behavior:"smooth"}); }}>
           <div style={{ width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${P},${PD})`,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:`0 4px 12px ${P}44`,overflow:"hidden" }}>
             {siteInfo.logo && siteInfo.logo.startsWith("http")
@@ -1250,10 +1251,9 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
               : <span>{siteInfo.logo||"🚗"}</span>
             }
           </div>
-          {!isMob && <div>
-            <div style={{ fontFamily:"'Georgia',serif",fontWeight:700,fontSize:15,color:AC,lineHeight:1.1 }}>{(siteInfo.name||"Clasificados Chapa J").split(" ").slice(0,-1).join(" ")||"Clasificados"}</div>
-            <div style={{ fontFamily:"'Georgia',serif",fontWeight:900,fontSize:13,color:P,lineHeight:1.1 }}>{(siteInfo.name||"Clasificados Chapa J").split(" ").slice(-2).join(" ")||'Chapa "J"'}</div>
-          </div>}
+          <div>
+            <div style={{ fontFamily:"'Georgia',serif",fontWeight:700,fontSize:15,color:AC,lineHeight:1.1 }}>Clasificados Chapa J</div>
+          </div>
         </div>
 
         {/* Barra de búsqueda — en móvil ocupa todo el espacio disponible */}
