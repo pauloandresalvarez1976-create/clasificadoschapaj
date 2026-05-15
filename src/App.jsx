@@ -5895,6 +5895,26 @@ function AUsers({ esModerador=false }) {
     setUsers(prev=>prev.map(u=>u.id===id?{...u,rol}:u));
   };
 
+  const handleEliminarUsuario = async (u) => {
+    if (!window.confirm(`⚠️ ¿Eliminar a "${u.nombre||u.email}" completamente?\n\nSe borrarán:\n• Su cuenta de acceso\n• Su perfil\n• Todos sus anuncios y fotos\n• Su tienda (si tiene)\n\nEsta acción NO se puede deshacer.`)) return;
+    try {
+      const res = await fetch("https://us-central1-clasificados-chapa-j.cloudfunctions.net/eliminarUsuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: u.uid, usuarioDocId: u.id }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setUsers(prev => prev.filter(x => x.id !== u.id));
+        alert(`✅ Usuario "${u.nombre||u.email}" eliminado completamente.`);
+      } else {
+        alert("Error al eliminar: " + (data.error || "desconocido"));
+      }
+    } catch(e) {
+      alert("Error de conexión: " + e.message);
+    }
+  };
+
   const filtered = users.filter(u=>
     !search || u.nombre?.toLowerCase().includes(search.toLowerCase()) || u.email?.includes(search)
   );
@@ -5955,6 +5975,7 @@ function AUsers({ esModerador=false }) {
                 ? <Btn size="sm" outline color={DANGER} onClick={()=>handleSuspend(u.id,"suspendido")}>🚫</Btn>
                 : <Btn size="sm" outline color={SUCCESS} onClick={()=>handleSuspend(u.id,"activo")}>✅</Btn>
               }
+              <Btn size="sm" color={DANGER} onClick={()=>handleEliminarUsuario(u)}>🗑️</Btn>
             </div>
           ])} />
         }
