@@ -4491,9 +4491,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       )}
 
-      {/* Banner publicitario GRANDE — antes del hero */}
-      <BannerZone banners={homeBanners} pos="hero-top"/>
-
       {/* Hero */}
       <div style={{
         background: heroConfig.heroImg ? "transparent" : `linear-gradient(135deg,${AC},#2D2D4E)`,
@@ -4522,6 +4519,9 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       </div>
 
+      {/* Banner publicitario GRANDE — después del hero */}
+      <BannerZone banners={homeBanners} pos="hero-top"/>
+
       {/* Stats */}
       <div style={{ background:AC,padding:"14px 20px" }}>
         <div style={{ maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"center",gap:"clamp(20px,6vw,60px)",flexWrap:"wrap" }}>
@@ -4535,7 +4535,6 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       </div>
 
-      {/* Categorías, destacados y anuncios — solo en vista inicio */}
       {vistaActiva === "inicio" && (
         <>
       {/* Banner home-cats */}
@@ -6392,9 +6391,8 @@ function BannerZone({ banners, pos }) {
             boxShadow: isHero?"none":"0 4px 20px rgba(0,0,0,.1)", marginBottom:10 }}>
           <img src={b.img} alt={b.name||"Banner publicitario"} style={{
             width:"100%", height:"auto",
-            maxHeight: isHero ? "none" : pos==="home-top" ? 160 : 200,
-            objectFit: isHero ? "contain" : "contain",
-            background: isHero ? "#fff" : "#fff",
+            maxHeight: isHero ? 400 : pos==="home-top" ? 160 : 200,
+            objectFit: isHero ? "cover" : "contain",
             display:"block", background:"#fff"
           }}/>
         </a>
