@@ -8199,7 +8199,6 @@ export default function App() {
               leido:false, createdAt: serverTimestamp(),
             });
           }
-          }
         }
       } catch(e){}
     }, 10000);
