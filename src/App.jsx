@@ -1013,6 +1013,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
     window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
   };
 
+
   const handleCalificar = async () => {
     if (!user||!rating) return;
     try {
@@ -7952,6 +7953,19 @@ export default function App() {
   const openTienda   = (t)        => { pushNav(); setSelTienda(t); };
   const openTiendas  = ()         => { pushNav(); setVistaActiva("tiendas"); };
   const openView     = (v, extra) => { pushNav(); if(extra) setLegalTab(extra); setView(v); };
+
+  // ── Abrir anuncio desde URL (?anuncio=ID) ─────────────────────────
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    const anuncioId = params.get("anuncio");
+    if (!anuncioId) return;
+    getDoc(doc(db, "anuncios", anuncioId)).then(snap => {
+      if (snap.exists()) {
+        openAnuncio({ id: snap.id, ...snap.data() });
+      }
+    }).catch(()=>{});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(()=>{
     const unsub = onAuthStateChanged(auth, async u=>{
