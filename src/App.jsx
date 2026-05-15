@@ -3604,15 +3604,22 @@ function AdCard({ ad, onClick, featured }) {
   const isFree = !ad.precio||ad.precio==="Consultar";
   const esDiamante  = ad.plan==="diamante";
   const esEsmeralda = ad.plan==="esmeralda";
-  const borderColor = h ? P : esDiamante ? "#7C3AED" : esEsmeralda ? "#10B981" : "#E5E7EB";
-  const shadowColor = esDiamante ? "rgba(124,58,237,.18)" : esEsmeralda ? "rgba(16,185,129,.14)" : "rgba(0,0,0,.04)";
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={()=>onClick(ad)}
-      style={{ background: esDiamante ? "linear-gradient(145deg,#faf5ff,#fff)" : esEsmeralda ? "linear-gradient(145deg,#f0fdf4,#fff)" : SF,
-        border:`2px solid ${borderColor}`,
-        borderRadius:14,overflow:"hidden",
-        cursor:"pointer",transition:"all .25s",transform:h?"translateY(-3px)":"none",
-        boxShadow: h ? `0 12px 32px ${shadowColor}` : esDiamante ? `0 4px 16px ${shadowColor}` : esEsmeralda ? `0 3px 12px ${shadowColor}` : "0 2px 8px rgba(0,0,0,.04)",
+      style={{
+        background: esDiamante
+          ? "linear-gradient(145deg,#EDE9FE,#DDD6FE)"
+          : esEsmeralda
+          ? "linear-gradient(145deg,#D1FAE5,#A7F3D0)"
+          : SF,
+        border: esDiamante ? "2.5px solid #7C3AED" : esEsmeralda ? "2.5px solid #059669" : `1.5px solid ${h?P:"#E5E7EB"}`,
+        borderRadius:14, overflow:"hidden",
+        cursor:"pointer", transition:"all .25s", transform:h?"translateY(-3px)":"none",
+        boxShadow: esDiamante
+          ? h ? "0 12px 32px rgba(124,58,237,.35)" : "0 4px 18px rgba(124,58,237,.25)"
+          : esEsmeralda
+          ? h ? "0 12px 32px rgba(5,150,105,.3)" : "0 4px 14px rgba(5,150,105,.2)"
+          : h ? "0 12px 32px rgba(0,0,0,.1)" : "0 2px 8px rgba(0,0,0,.04)",
         position:"relative", opacity: ad.vendedorVerificado ? 1 : 0.75 }}>
       <div style={{ height:featured?155:125,background:`linear-gradient(135deg,${BG},#e8e8f0)`,
         display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden" }}>
@@ -3663,11 +3670,20 @@ function AdCardList({ ad, onClick }) {
   const isFree = !ad.precio||ad.precio==="Consultar";
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={()=>onClick(ad)}
-      style={{ background: ad.plan==="diamante" ? "linear-gradient(145deg,#faf5ff,#fff)" : ad.plan==="esmeralda" ? "linear-gradient(145deg,#f0fdf4,#fff)" : SF,
-        border:`2px solid ${h?P:ad.plan==="diamante"?"#7C3AED":ad.plan==="esmeralda"?"#10B981":"#E5E7EB"}`,
+      style={{
+        background: ad.plan==="diamante"
+          ? "linear-gradient(145deg,#EDE9FE,#DDD6FE)"
+          : ad.plan==="esmeralda"
+          ? "linear-gradient(145deg,#D1FAE5,#A7F3D0)"
+          : SF,
+        border: ad.plan==="diamante" ? "2.5px solid #7C3AED" : ad.plan==="esmeralda" ? "2.5px solid #059669" : `1.5px solid ${h?P:"#E5E7EB"}`,
         borderRadius:14, overflow:"hidden",
         cursor:"pointer", transition:"all .2s", display:"flex", alignItems:"stretch",
-        boxShadow:h?`0 6px 24px ${ad.plan==="diamante"?"rgba(124,58,237,.18)":ad.plan==="esmeralda"?"rgba(16,185,129,.14)":"rgba(0,0,0,.09)"}`:ad.plan==="diamante"?"0 3px 14px rgba(124,58,237,.14)":ad.plan==="esmeralda"?"0 2px 10px rgba(16,185,129,.12)":"0 1px 4px rgba(0,0,0,.05)",
+        boxShadow: ad.plan==="diamante"
+          ? h?"0 8px 28px rgba(124,58,237,.35)":"0 4px 16px rgba(124,58,237,.25)"
+          : ad.plan==="esmeralda"
+          ? h?"0 8px 28px rgba(5,150,105,.3)":"0 3px 12px rgba(5,150,105,.2)"
+          : h?"0 6px 24px rgba(0,0,0,.09)":"0 1px 4px rgba(0,0,0,.05)",
         opacity: ad.vendedorVerificado ? 1 : 0.75 }}>
       {/* Foto */}
       <div style={{ width:130, minWidth:130, background:`linear-gradient(135deg,${BG},#e8e8f0)`,
