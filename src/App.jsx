@@ -4362,13 +4362,18 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       query(collection(db,"anuncios"),where("status","==","activo"),orderBy("createdAt","desc"),limit(50)),
       snap=>{
         const ads = snap.docs.map(d=>({id:d.id,...d.data()}));
-        // Ordenar: Diamante primero, luego Esmeralda, luego Cuarzo, dentro de cada grupo por fecha
+        // Ordenar: Diamante primero, luego Esmeralda, luego Cuarzo
+        // Dentro de cada grupo: verificados primero, luego por fecha
         const planOrder = {diamante:0, esmeralda:1, cuarzo:2};
         ads.sort((a,b)=>{
           const pa = planOrder[a.plan||"cuarzo"]??2;
           const pb = planOrder[b.plan||"cuarzo"]??2;
           if(pa!==pb) return pa-pb;
-          // Mismo plan → más reciente primero
+          // Mismo plan → verificados primero
+          const va = a.vendedorVerificado?0:1;
+          const vb = b.vendedorVerificado?0:1;
+          if(va!==vb) return va-vb;
+          // Mismo plan y mismo verificado → más reciente primero
           const ta = a.updatedAt?.seconds||a.createdAt?.seconds||0;
           const tb = b.updatedAt?.seconds||b.createdAt?.seconds||0;
           return tb-ta;
