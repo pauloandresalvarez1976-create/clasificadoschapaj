@@ -5872,8 +5872,16 @@ function AUsers({ esModerador=false }) {
   };
 
   const handleVerificar = async (id, valor) => {
+    // Actualizar en colección usuarios
     await updateDoc(doc(db,"usuarios",id),{ verificado: valor });
     setUsers(prev=>prev.map(u=>u.id===id?{...u,verificado:valor}:u));
+    // Buscar el uid del usuario para actualizar sus anuncios
+    const usuarioLocal = users.find(u=>u.id===id);
+    if (usuarioLocal?.uid) {
+      const qA = query(collection(db,"anuncios"), where("uid","==",usuarioLocal.uid));
+      const snapA = await getDocs(qA);
+      await Promise.all(snapA.docs.map(d => updateDoc(d.ref, { vendedorVerificado: valor })));
+    }
   };
 
   const handleCambiarPlan = async (id, plan) => {
@@ -5935,7 +5943,7 @@ function AUsers({ esModerador=false }) {
                 <option value="diamante">💠 Diamante</option>
               </select>,
             <Pill label={u.status||"activo"} color={(u.status||"activo")==="activo"?SUCCESS:DANGER}/>,
-            <span style={{ cursor: esModerador?"default":"pointer" }}
+            <span style={{ cursor: esModerador?"default":"pointer", display:"inline-flex", alignItems:"center", gap:4 }}
               title={esModerador ? "" : u.verificado?"Click para quitar verificación":"Click para verificar manualmente"}
               onClick={esModerador ? undefined : ()=>handleVerificar(u.id,!u.verificado)}>
               {u.verificado ? "✅ Verificado" : "❌ Sin verificar"}
@@ -8154,6 +8162,13 @@ export default function App() {
           if (u.emailVerified && !data.verificado) {
             await updateDoc(snap.docs[0].ref, { verificado: true });
             data.verificado = true;
+            // Notificar al admin
+            await addDoc(collection(db,"alertas"),{
+              uid:"admin", tipo:"verificacion", icono:"✅",
+              titulo:"Usuario verificó su email",
+              msg:`${data.nombre||u.email} confirmó su email y fue verificado automáticamente.`,
+              leido:false, createdAt: serverTimestamp(),
+            });
           }
           setUserData(data);
         }
@@ -8175,6 +8190,15 @@ export default function App() {
           if (!snap.empty && !snap.docs[0].data().verificado) {
             await updateDoc(snap.docs[0].ref, { verificado: true });
             setUserData(prev => prev ? {...prev, verificado:true} : prev);
+            // Notificar al admin
+            const d = snap.docs[0].data();
+            await addDoc(collection(db,"alertas"),{
+              uid:"admin", tipo:"verificacion", icono:"✅",
+              titulo:"Usuario verificó su email",
+              msg:`${d.nombre||u.email} confirmó su email y fue verificado automáticamente.`,
+              leido:false, createdAt: serverTimestamp(),
+            });
+          }
           }
         }
       } catch(e){}
