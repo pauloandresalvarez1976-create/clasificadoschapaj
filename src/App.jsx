@@ -4486,8 +4486,8 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
           }
         }}/>
 
-      {/* Modo mantenimiento — no se muestra al admin */}
-      {maintenance.active && user?.uid !== "QbAM2F4oh6NPYy38ZD9DhRVId622" && (
+      {/* Modo mantenimiento — no se muestra al admin ni moderador */}
+      {maintenance.active && userData?.rol !== "admin" && userData?.rol !== "moderador" && (
         <div style={{ position:"fixed", inset:0, zIndex:9998, background:"linear-gradient(135deg,#1A1A2E,#16213E)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ textAlign:"center", maxWidth:480 }}>
             <div style={{ fontSize:72, marginBottom:24 }}>🔧</div>
