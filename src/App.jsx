@@ -2088,13 +2088,24 @@ function PerfilTab({ user, userData, misAnuncios, onLogout }) {
     if (!nombre.trim()) return setError("El nombre no puede estar vacío");
     setSaving(true); setError("");
     try {
-      // Actualizar en Firebase Auth
-      await updateProfile(auth.currentUser, { displayName: nombre.trim() });
-      // Actualizar en Firestore
-      const q = query(collection(db,"usuarios"), where("uid","==",user.uid));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        await updateDoc(snap.docs[0].ref, { nombre: nombre.trim() });
+      const nuevoNombre = nombre.trim();
+      // 1. Actualizar en Firebase Auth
+      await updateProfile(auth.currentUser, { displayName: nuevoNombre });
+      // 2. Actualizar en colección usuarios
+      const qU = query(collection(db,"usuarios"), where("uid","==",user.uid));
+      const snapU = await getDocs(qU);
+      if (!snapU.empty) {
+        await updateDoc(snapU.docs[0].ref, { nombre: nuevoNombre });
+      }
+      // 3. Actualizar nombreVendedor en todos sus anuncios
+      const qA = query(collection(db,"anuncios"), where("uid","==",user.uid));
+      const snapA = await getDocs(qA);
+      await Promise.all(snapA.docs.map(d => updateDoc(d.ref, { nombreVendedor: nuevoNombre })));
+      // 4. Actualizar nombre en su tienda (si tiene)
+      if (userData?.tiendaId) {
+        try {
+          await updateDoc(doc(db,"tiendas",userData.tiendaId), { nombreVendedor: nuevoNombre });
+        } catch(e) {}
       }
       setEditando(false);
       setOk(true);
