@@ -4451,13 +4451,12 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp, user }) {
   };
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:250,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",
-      overflowY:"auto" }}>
-      <div style={{ maxWidth:860,margin:"20px auto",borderRadius:20,overflow:"hidden",
-        boxShadow:"0 24px 80px rgba(0,0,0,.4)" }} onClick={e=>e.stopPropagation()}>
+    <div style={{ position:"fixed",inset:0,zIndex:250,background:BG,overflowY:"auto" }}>
+      <div style={{ minHeight:"100vh" }} onClick={e=>e.stopPropagation()}>
 
         {/* Header tienda */}
         <div style={{ background:grad, padding:"32px 28px", position:"relative" }}>
+          <div style={{ maxWidth:900, margin:"0 auto" }}>
           <button onClick={onClose} style={{ position:"absolute",top:16,right:16,background:"rgba(255,255,255,.15)",
             border:"none",color:"#fff",borderRadius:"50%",width:36,height:36,cursor:"pointer",fontSize:18 }}>✕</button>
           <BtnVolver onClick={onClose} label="← Volver al inicio" style={{ marginBottom:16, fontSize:13, padding:"8px 16px" }}/>
@@ -4495,10 +4494,12 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp, user }) {
             {tienda.instagram && <a href={tienda.instagram} target="_blank" rel="noopener noreferrer" style={{ color:accent,fontSize:12,fontWeight:600 }}>📷 Instagram</a>}
             {tienda.facebook && <a href={tienda.facebook} target="_blank" rel="noopener noreferrer" style={{ color:accent,fontSize:12,fontWeight:600 }}>👥 Facebook</a>}
           </div>
+          </div>{/* end maxWidth */}
         </div>
 
         {/* Anuncios de la tienda */}
-        <div style={{ background:BG,padding:"24px 20px",minHeight:200 }}>
+        <div style={{ background:BG,padding:"24px 20px",minHeight:"calc(100vh - 300px)" }}>
+          <div style={{ maxWidth:900, margin:"0 auto" }}>
           <div style={{ fontWeight:800,fontSize:16,color:AC,marginBottom:16 }}>
             📦 Productos y servicios ({anuncios.length})
           </div>
@@ -4537,6 +4538,7 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp, user }) {
           <div style={{ marginTop:16 }}>
             <DenunciarBtn anuncio={{ id: tienda.id, titulo: tienda.nombre, uid: tienda.uid }} user={user} esTienda />
           </div>
+          </div>{/* end maxWidth */}
         </div>
       </div>
     </div>
