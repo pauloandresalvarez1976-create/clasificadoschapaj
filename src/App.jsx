@@ -4491,6 +4491,9 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
         </div>
       )}
 
+      {/* Banner publicitario GRANDE — antes del hero */}
+      <BannerZone banners={homeBanners} pos="hero-top"/>
+
       {/* Hero */}
       <div style={{
         background: heroConfig.heroImg ? "transparent" : `linear-gradient(135deg,${AC},#2D2D4E)`,
@@ -6379,13 +6382,20 @@ function APricing({cfg,set,onSave}) {
 function BannerZone({ banners, pos }) {
   const list = banners.filter(b=>b.pos===pos && b.active && b.img);
   if(!list.length) return null;
+  const isHero = pos === "hero-top";
   return (
-    <div style={{ maxWidth:1200,margin:"0 auto",padding:"0 20px 24px" }}>
+    <div style={{ maxWidth: isHero?"100%":1200, margin:"0 auto", padding: isHero?"0 0 16px":"0 20px 24px" }}>
       {list.map(b=>(
         <a key={b.id} href={b.link||"#"} target="_blank" rel="noopener noreferrer"
           onClick={async()=>{ try{ await updateDoc(doc(db,"banners",b.id),{clicks:increment(1)}); }catch(e){} }}
-          style={{ display:"block",borderRadius:14,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,.1)",marginBottom:10 }}>
-          <img src={b.img} alt={b.name} style={{ width:"100%",height:"auto",maxHeight:200,objectFit:"contain",display:"block",background:"#fff" }}/>
+          style={{ display:"block", borderRadius: isHero?0:14, overflow:"hidden",
+            boxShadow: isHero?"none":"0 4px 20px rgba(0,0,0,.1)", marginBottom:10 }}>
+          <img src={b.img} alt={b.name||"Banner publicitario"} style={{
+            width:"100%", height:"auto",
+            maxHeight: isHero ? 400 : pos==="home-top" ? 160 : 200,
+            objectFit: isHero ? "cover" : "contain",
+            display:"block", background:"#fff"
+          }}/>
         </a>
       ))}
     </div>
@@ -6463,11 +6473,12 @@ function ABanners() {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
           <Inp label="Nombre del banner" value={newName} onChange={setNewName} placeholder="Ej: Banner principal"/>
           <Sel label="Posición" value={newPos} onChange={setNewPos} options={[
-            {value:"home-top",label:"Home – Superior (debajo del hero)"},
-            {value:"home-cats",label:"Home – Antes de categorías"},
-            {value:"home-mid",label:"Home – Medio (antes de anuncios)"},
-            {value:"home-ads",label:"Home – Entre anuncios"},
-            {value:"home-bottom",label:"Home – Inferior (antes del footer)"},
+            {value:"hero-top",    label:"🔝 Hero – GRANDE arriba del todo (hasta 400px alto)"},
+            {value:"home-top",    label:"Home – Superior (debajo del hero)"},
+            {value:"home-cats",   label:"Home – Antes de categorías"},
+            {value:"home-mid",    label:"Home – Medio (antes de anuncios)"},
+            {value:"home-ads",    label:"Home – Entre anuncios"},
+            {value:"home-bottom", label:"Home – Inferior (antes del footer)"},
           ]}/>
           <Inp label="URL de destino" value={newLink} onChange={setNewLink} placeholder="https://..."/>
           <div>
@@ -6475,18 +6486,33 @@ function ABanners() {
             {newImg && <img src={newImg} style={{ width:"100%",height:60,objectFit:"cover",borderRadius:8,marginBottom:8 }}/>}
             <label style={{ display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"8px 12px",borderRadius:8,border:`1.5px dashed ${BR}`,background:BG }}>
               <span>📷</span>
-              <span style={{ fontSize:12,color:TL }}>{uploadingImg?"Subiendo...":(newImg?"Cambiar imagen":"Subir imagen")}</span>
-              <input type="file" accept="image/*" style={{ display:"none" }} onChange={async e=>{
+              <span style={{ fontSize:12,color:TL }}>{uploadingImg?"Subiendo...":(newImg?"Cambiar imagen":"Subir imagen (JPG, PNG, GIF)")}</span>
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:"none" }} onChange={async e=>{
                 const file=e.target.files[0]; if(!file) return;
                 setUploadingImg(true);
                 try{
                   const sRef=ref(storage,`banners/${Date.now()}_${file.name}`);
-                  const task=uploadBytesResumable(sRef,file,{contentType:file.type});
+                  let uploadFile = file;
+                  if(file.type !== "image/gif") {
+                    try {
+                      const bitmap = await createImageBitmap(file);
+                      const canvas = document.createElement("canvas");
+                      const maxW = 1400;
+                      const ratio = Math.min(1, maxW / bitmap.width);
+                      canvas.width = Math.round(bitmap.width * ratio);
+                      canvas.height = Math.round(bitmap.height * ratio);
+                      const ctx = canvas.getContext("2d");
+                      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.82));
+                      uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type:"image/jpeg" });
+                    } catch(compErr) { uploadFile = file; }
+                  }
+                  const task=uploadBytesResumable(sRef, uploadFile, {contentType: uploadFile.type});
                   task.on("state_changed",null,null,async()=>{ setNewImg(await getDownloadURL(task.snapshot.ref)); setUploadingImg(false); });
                 }catch(e){ setUploadingImg(false); }
               }}/>
             </label>
-            <div style={{ fontSize:11,color:TL,marginTop:4 }}>Recomendado: 1200×120px</div>
+            <div style={{ fontSize:11,color:TL,marginTop:4 }}>JPG, PNG, GIF animado · Compresión automática · Hero: 1400×400px · Otros: 1200×120px</div>
           </div>
         </div>
         <Btn onClick={handleAdd} disabled={saving||uploadingImg}>{saving?"Guardando...":"➕ Agregar banner"}</Btn>
