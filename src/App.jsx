@@ -476,7 +476,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
         contactoWA: mostrarWA?contactoWA:"", mostrarWA,
         uid: user.uid, nombreVendedor: userData?.nombre||user.displayName||"", esComercio: !!(userData?.tiendaId),
         vendedorVerificado: user.emailVerified || false,
-        plan: "cuarzo", status: "activo",
+        plan: userData?.tiendaPlan || userData?.plan || "cuarzo", status: "activo",
         vistas:0, consultas:0, favoritos:0, reportes:0,
         vencimientoAt: venc,
         createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
