@@ -2076,6 +2076,121 @@ function PlanTab({ userData, user, onSubView }) {
 }
 
 // ── MI CUENTA ────────────────────────────────────────────────────
+// ── PERFIL TAB ────────────────────────────────────────────────────
+function PerfilTab({ user, userData, misAnuncios, onLogout }) {
+  const [nombre, setNombre] = useState(user.displayName || userData?.nombre || "");
+  const [editando, setEditando] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGuardar = async () => {
+    if (!nombre.trim()) return setError("El nombre no puede estar vacío");
+    setSaving(true); setError("");
+    try {
+      // Actualizar en Firebase Auth
+      await updateProfile(auth.currentUser, { displayName: nombre.trim() });
+      // Actualizar en Firestore
+      const q = query(collection(db,"usuarios"), where("uid","==",user.uid));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await updateDoc(snap.docs[0].ref, { nombre: nombre.trim() });
+      }
+      setEditando(false);
+      setOk(true);
+      setTimeout(() => setOk(false), 3000);
+    } catch(e) {
+      setError("No se pudo guardar. Intentá de nuevo.");
+    } finally { setSaving(false); }
+  };
+
+  const stats = [
+    { icon:"📋", label:"Anuncios publicados", value: misAnuncios.length },
+    { icon:"👁️", label:"Vistas totales",      value: misAnuncios.reduce((a,b)=>a+(b.vistas||0),0) },
+    { icon:"⭐", label:"Calificación",         value: userData?.rating ? `${userData.rating.toFixed(1)}/5` : "—" },
+    { icon:"🏆", label:"Puntos",               value: userData?.puntos || 0 },
+  ];
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:28 }}>
+        {stats.map(s=>(
+          <div key={s.label} style={{ background:BG, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
+            <div style={{ fontSize:24, marginBottom:4 }}>{s.icon}</div>
+            <div style={{ fontWeight:800, fontSize:20, color:TX }}>{s.value}</div>
+            <div style={{ fontSize:12, color:TL }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Editar nombre */}
+      <div style={{ background:BG, borderRadius:14, padding:"20px 20px", marginBottom:16, border:`1.5px solid ${BR}` }}>
+        <div style={{ fontSize:13, fontWeight:700, color:TM, marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+          👤 Nombre de cuenta
+        </div>
+
+        {editando ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <input
+              value={nombre}
+              onChange={e=>setNombre(e.target.value)}
+              maxLength={60}
+              placeholder="Tu nombre"
+              style={{ padding:"10px 14px", borderRadius:10, border:`2px solid ${P}`,
+                fontFamily:"inherit", fontSize:15, fontWeight:600, outline:"none",
+                color:TX, background:SF, width:"100%", boxSizing:"border-box" }}
+              onKeyDown={e=>{ if(e.key==="Enter") handleGuardar(); if(e.key==="Escape") setEditando(false); }}
+              autoFocus
+            />
+            {error && <div style={{ fontSize:12, color:ER }}>{error}</div>}
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={handleGuardar} disabled={saving}
+                style={{ flex:1, padding:"10px", borderRadius:10, background:`linear-gradient(135deg,${P},${PD})`,
+                  color:"#fff", border:"none", cursor:saving?"not-allowed":"pointer",
+                  fontWeight:800, fontSize:14, fontFamily:"inherit", opacity:saving?.7:1 }}>
+                {saving ? "Guardando…" : "✅ Guardar"}
+              </button>
+              <button onClick={()=>{ setEditando(false); setNombre(user.displayName||userData?.nombre||""); setError(""); }}
+                style={{ padding:"10px 16px", borderRadius:10, border:`1.5px solid ${BR}`,
+                  background:"transparent", color:TM, cursor:"pointer", fontWeight:700, fontFamily:"inherit" }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+            <div>
+              <div style={{ fontSize:18, fontWeight:800, color:TX }}>{user.displayName || userData?.nombre || "—"}</div>
+              <div style={{ fontSize:12, color:TL, marginTop:2 }}>{user.email}</div>
+            </div>
+            <button onClick={()=>setEditando(true)}
+              style={{ padding:"8px 18px", borderRadius:10, background:`linear-gradient(135deg,${P},${PD})`,
+                color:"#fff", border:"none", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit",
+                boxShadow:`0 4px 12px ${P}44`, whiteSpace:"nowrap" }}>
+              ✏️ Editar
+            </button>
+          </div>
+        )}
+
+        {ok && (
+          <div style={{ marginTop:10, padding:"8px 12px", borderRadius:8, background:"#F0FDF4",
+            border:"1px solid #BBF7D0", color:OK, fontSize:13, fontWeight:600 }}>
+            ✅ ¡Nombre actualizado correctamente!
+          </div>
+        )}
+      </div>
+
+      {/* Cerrar sesión */}
+      <button onClick={onLogout}
+        style={{ width:"100%", padding:"12px", borderRadius:10, border:`1.5px solid ${ER}`,
+          color:ER, background:"transparent", cursor:"pointer", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
+        🚪 Cerrar sesión
+      </button>
+    </div>
+  );
+}
+
 function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }) {
   const [misAnuncios, setMisAnuncios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2188,8 +2303,8 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   return (
     <>
     <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:12 }}>
-      <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:1200,maxHeight:"96vh",height:"96vh",
+      display:"flex",alignItems:"stretch",justifyContent:"center",padding:0 }}>
+      <div style={{ background:SF,borderRadius:0,width:"100%",maxWidth:"100%",maxHeight:"100vh",height:"100vh",
         overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
 
         {/* Header */}
@@ -2452,20 +2567,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
       {/* ── FAVORITOS ── */}
       {tab==="favoritos" && <FavoritosTab user={user}/>}
       {tab==="perfil" && (
-        <div>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20 }}>
-            {[{icon:"📋",label:"Anuncios publicados",value:misAnuncios.length},{icon:"👁️",label:"Vistas totales",value:misAnuncios.reduce((a,b)=>a+(b.vistas||0),0)},{icon:"⭐",label:"Calificación",value:userData?.rating?`${userData.rating.toFixed(1)}/5`:"Sin calificaciones"},{icon:"🏆",label:"Puntos",value:userData?.puntos||0}].map(s=>(
-              <div key={s.label} style={{ background:BG,borderRadius:10,padding:"14px 16px",textAlign:"center" }}>
-                <div style={{ fontSize:24,marginBottom:4 }}>{s.icon}</div>
-                <div style={{ fontWeight:800,fontSize:20,color:TX }}>{s.value}</div>
-                <div style={{ fontSize:12,color:TL }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-          <button onClick={handleLogout} style={{ width:"100%",padding:"12px",borderRadius:10,border:`1.5px solid ${ER}`,color:ER,background:"transparent",cursor:"pointer",fontWeight:700,fontSize:14,fontFamily:"inherit" }}>
-            🚪 Cerrar sesión
-          </button>
-        </div>
+        <PerfilTab user={user} userData={userData} misAnuncios={misAnuncios} onLogout={handleLogout}/>
       )}
         </div>
       </div>
