@@ -489,7 +489,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
   const LOCALIDADES = ["Capital","Rawson","Rivadavia","Santa Lucía","Pocito","Chimbas","Godoy","Caucete","25 de Mayo","Sarmiento","Angaco","Albardón","Calingasta","Iglesia","Jáchal","San Martín","Ullum","Valle Fértil","Zonda"];
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
+    <div style={{ position:"fixed",inset:0,zIndex:310,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
       display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto" }}>
       <div style={{ background:SF,borderRadius:20,padding:32,width:"100%",maxWidth:560,
         boxShadow:"0 24px 80px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
