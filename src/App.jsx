@@ -5192,7 +5192,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:18 }}>
                       {tiendas.filter(t=>t.plan==="diamante").map(t=>(
-                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>{ setFiltroTiendaUid(t.uid); setFiltroTiendaNombre(t.nombre); setVistaActiva("inicio"); setPagina(1); setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),200); }}/>
+                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>setSelTienda(t)}/>
                       ))}
                     </div>
                   </div>
@@ -5206,7 +5206,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
                       {tiendas.filter(t=>t.plan==="esmeralda").map(t=>(
-                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>{ setFiltroTiendaUid(t.uid); setFiltroTiendaNombre(t.nombre); setVistaActiva("inicio"); setPagina(1); setTimeout(()=>anunciosRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),200); }}/>
+                        <TiendaCard key={t.id} tienda={t} siteWhatsapp={siteWhatsapp} onVerTienda={setSelTienda} onVerAnunciosTienda={t=>setSelTienda(t)}/>
                       ))}
                     </div>
                   </div>
