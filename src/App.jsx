@@ -2395,6 +2395,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                               🔄 Solicitar revisión
                             </button>
                           )}
+                          {!vencido && (
                             a.status==="activo"
                               ? <button onClick={()=>handleSuspender(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${WA}`,color:WA,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>⏸ Pausar</button>
                               : <button onClick={()=>handleActivar(a.id)} style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${OK}`,color:OK,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>▶ Activar</button>
