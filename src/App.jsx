@@ -206,6 +206,25 @@ const StarRating = ({ value, onChange, readonly=false }) => (
 );
 
 // ── AUTH MODAL ───────────────────────────────────────────────────
+// ── BOTÓN VOLVER LLAMATIVO ────────────────────────────────────
+function BtnVolver({ onClick, label="← Volver al inicio", style={} }) {
+  return (
+    <button onClick={onClick} style={{
+      display:"inline-flex", alignItems:"center", gap:8,
+      background:`linear-gradient(135deg,${P},${PD})`,
+      color:"#fff", border:"none", borderRadius:10,
+      padding:"10px 20px", fontWeight:800, fontSize:14,
+      cursor:"pointer", fontFamily:"inherit",
+      boxShadow:`0 4px 14px ${P}55`, transition:"all .2s",
+      ...style
+    }}
+      onMouseEnter={e=>e.currentTarget.style.transform="scale(1.04)"}
+      onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+      {label}
+    </button>
+  );
+}
+
 function AuthModal({ onClose, onSuccess }) {
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
@@ -1054,12 +1073,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
       {/* Barra superior */}
       <div style={{ position:"sticky",top:0,zIndex:10,background:SF,borderBottom:`1px solid ${BR}`,
         padding:"12px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
-        <button onClick={onClose}
-          style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:10,
-            border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",fontFamily:"inherit",
-            fontSize:13,fontWeight:700,color:TM }}>
-          ← Volver
-        </button>
+        <BtnVolver onClick={onClose} label="← Volver" style={{ padding:"8px 16px", fontSize:13 }}/>
         <div style={{ flex:1,minWidth:0 }}>
           <div style={{ fontWeight:700,fontSize:14,color:TX,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{anuncio.titulo}</div>
           <div style={{ fontSize:12,color:TL }}>{anuncio.categoria}{anuncio.subcategoria?` · ${anuncio.subcategoria}`:""}{anuncio.localidad?` · ${anuncio.localidad}`:""}</div>
@@ -3883,7 +3897,7 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
       <div style={{ background:"linear-gradient(135deg,#0F0C29,#1a1a3e)", padding:"40px 20px" }}>
         <div style={{ maxWidth:520, margin:"0 auto" }}>
           <button onClick={()=>{ setPlanSel(null); setTiendaStep("planes"); setError(""); }}
-            style={{ background:"none", border:"1px solid rgba(255,255,255,.3)", color:"rgba(255,255,255,.7)", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontFamily:"inherit", fontSize:13, marginBottom:20 }}>
+            style={{ background:"linear-gradient(135deg,#FF6B2B,#E05520)", color:"#fff", padding:"8px 16px", borderRadius:10, border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:800, marginBottom:20, boxShadow:"0 4px 14px rgba(255,107,43,.4)" }}>
             ← Volver a los planes
           </button>
           <div style={{ color:"#fff", fontWeight:800, fontSize:20, marginBottom:6 }}>Datos de tu tienda</div>
@@ -3925,7 +3939,7 @@ function TiendaPlanesSection({ user, userData, siteWhatsapp }) {
       <div style={{ background:"linear-gradient(135deg,#0F0C29,#1a1a3e)", padding:"40px 20px" }}>
         <div style={{ maxWidth:520, margin:"0 auto" }}>
           <button onClick={()=>{ setPlanSel(null); setMetodo(null); setComprobante(null); setError(""); setTiendaStep("planes"); }}
-            style={{ background:"none", border:"1px solid rgba(255,255,255,.3)", color:"rgba(255,255,255,.7)", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontFamily:"inherit", fontSize:13, marginBottom:20 }}>
+            style={{ background:"linear-gradient(135deg,#FF6B2B,#E05520)", color:"#fff", padding:"8px 16px", borderRadius:10, border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:800, marginBottom:20, boxShadow:"0 4px 14px rgba(255,107,43,.4)" }}>
             ← Volver a los planes
           </button>
 
@@ -4134,6 +4148,7 @@ function TiendaDetalle({ tienda, onClose, onVerAnuncio, siteWhatsapp, user }) {
         <div style={{ background:grad, padding:"32px 28px", position:"relative" }}>
           <button onClick={onClose} style={{ position:"absolute",top:16,right:16,background:"rgba(255,255,255,.15)",
             border:"none",color:"#fff",borderRadius:"50%",width:36,height:36,cursor:"pointer",fontSize:18 }}>✕</button>
+          <BtnVolver onClick={onClose} label="← Volver al inicio" style={{ marginBottom:16, fontSize:13, padding:"8px 16px" }}/>
           <div style={{ display:"flex",alignItems:"center",gap:18 }}>
             <div style={{ width:80,height:80,borderRadius:16,overflow:"hidden",background:"rgba(255,255,255,.1)",
               flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center" }}>
@@ -7747,7 +7762,7 @@ function ComoPublicarView({ onVolver, onPublicar }) {
             <div style={{ color:"rgba(255,255,255,0.4)",fontSize:11 }}>Guía de publicación</div>
           </div>
         </div>
-        <button onClick={onVolver} style={{ background:"none",border:`1px solid rgba(255,255,255,0.3)`,color:"rgba(255,255,255,0.7)",padding:"6px 14px",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13 }}>← Volver al sitio</button>
+        <BtnVolver onClick={onVolver} label="← Volver al sitio" style={{ fontSize:13, padding:"8px 16px" }}/>
       </div>
 
       <div style={{ maxWidth:860,margin:"0 auto",padding:"40px 20px 60px" }}>
@@ -7869,7 +7884,7 @@ function LegalView({ onVolver, initialTab="terminos" }) {
             <div style={{ color:"rgba(255,255,255,0.4)", fontSize:11 }}>Documentos Legales</div>
           </div>
         </div>
-        <button onClick={onVolver} style={{ background:"none", border:`1px solid rgba(255,255,255,0.3)`, color:"rgba(255,255,255,0.7)", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontFamily:"inherit", fontSize:13 }}>← Volver al sitio</button>
+        <BtnVolver onClick={onVolver} label="← Volver al sitio" style={{ fontSize:13, padding:"8px 16px" }}/>
       </div>
       <div style={{ background:SF, borderBottom:`1px solid ${BR}`, padding:"0 20px", display:"flex", overflowX:"auto" }}>
         {[
