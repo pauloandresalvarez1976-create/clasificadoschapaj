@@ -4527,6 +4527,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
   const [recentAds, setRecentAds] = useState([]);
   const [featuredAds, setFeaturedAds] = useState([]);
   const [search, setSearch] = useState("");
+  const [totalUsuarios, setTotalUsuarios] = useState(0);
   // selAnuncio y selTienda vienen como props desde App (manejo centralizado del historial)
   const [selCat, setSelCat] = useState(null);
   const [selSub, setSelSub] = useState(null);
@@ -4552,6 +4553,9 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
     getDoc(doc(db,"config","alerts")).then(snap=>{
       if(snap.exists()){ const d=snap.data(); setSystemAlert({ show:d.showAlert||false, text:d.alertText||"", type:d.alertType||"warning" }); }
     }).catch(()=>{});
+
+    // Contar usuarios registrados
+    getDocs(collection(db,"usuarios")).then(snap=>setTotalUsuarios(snap.size)).catch(()=>{});
 
     // Cargar categorías dinámicas desde Firestore
     getDoc(doc(db,"config","categories")).then(snap=>{
@@ -4829,7 +4833,7 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       {/* Stats */}
       <div style={{ background:AC,padding:"14px 20px" }}>
         <div style={{ maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"center",gap:"clamp(20px,6vw,60px)",flexWrap:"wrap" }}>
-          {[{icon:"📋",label:"Anuncios activos",value:`${recentAds.length}+`},{icon:"🗂️",label:"Categorías",value:"26"},{icon:"🏔️",label:"San Juan",value:"100%"},{icon:"💎",label:"Planes de anuncio",value:"3"}].map(s=>(
+          {[{icon:"📋",label:"Anuncios activos",value:`${recentAds.length}+`},{icon:"👥",label:"Usuarios registrados",value:`${totalUsuarios}+`},{icon:"🗂️",label:"Categorías",value:"26"},{icon:"💎",label:"Planes de anuncio",value:"3"}].map(s=>(
             <div key={s.label} style={{ textAlign:"center" }}>
               <div style={{ fontSize:18 }}>{s.icon}</div>
               <div style={{ color:P,fontWeight:800,fontSize:20,lineHeight:1.2 }}>{s.value}</div>
