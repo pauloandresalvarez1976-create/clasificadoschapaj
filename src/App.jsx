@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, sendEmailVerification,
+  reauthenticateWithCredential, EmailAuthProvider, updatePassword,
 } from "firebase/auth";
 import {
   getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, setDoc,
@@ -2192,12 +2193,134 @@ function PerfilTab({ user, userData, misAnuncios, onLogout }) {
         )}
       </div>
 
+      {/* Contraseña */}
+      <CambiarPasswordBlock user={user}/>
+
       {/* Cerrar sesión */}
       <button onClick={onLogout}
         style={{ width:"100%", padding:"12px", borderRadius:10, border:`1.5px solid ${ER}`,
           color:ER, background:"transparent", cursor:"pointer", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
         🚪 Cerrar sesión
       </button>
+    </div>
+  );
+}
+
+// ── CAMBIAR / RECUPERAR CONTRASEÑA ───────────────────────────────
+function CambiarPasswordBlock({ user }) {
+  const [modo, setModo] = useState(null); // null | "cambiar" | "recuperar"
+  const [passActual, setPassActual] = useState("");
+  const [passNueva, setPassNueva]   = useState("");
+  const [passConf, setPassConf]     = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [msg, setMsg]               = useState(null); // { tipo, texto }
+
+  const resetForm = () => { setPassActual(""); setPassNueva(""); setPassConf(""); setMsg(null); };
+
+  const handleCambiar = async () => {
+    if (!passActual || !passNueva || !passConf) return setMsg({ tipo:"error", texto:"Completá todos los campos" });
+    if (passNueva.length < 6)  return setMsg({ tipo:"error", texto:"La nueva contraseña debe tener al menos 6 caracteres" });
+    if (passNueva !== passConf) return setMsg({ tipo:"error", texto:"Las contraseñas nuevas no coinciden" });
+    setLoading(true); setMsg(null);
+    try {
+      const cred = EmailAuthProvider.credential(user.email, passActual);
+      await reauthenticateWithCredential(auth.currentUser, cred);
+      await updatePassword(auth.currentUser, passNueva);
+      setMsg({ tipo:"ok", texto:"✅ ¡Contraseña actualizada correctamente!" });
+      resetForm();
+      setTimeout(()=>{ setModo(null); setMsg(null); }, 3000);
+    } catch(e) {
+      if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential")
+        setMsg({ tipo:"error", texto:"La contraseña actual es incorrecta" });
+      else
+        setMsg({ tipo:"error", texto:"Error al cambiar. Intentá de nuevo." });
+    } finally { setLoading(false); }
+  };
+
+  const handleRecuperar = async () => {
+    setLoading(true); setMsg(null);
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setMsg({ tipo:"ok", texto:`✅ Te enviamos un link a ${user.email} para restablecer tu contraseña.` });
+      setTimeout(()=>{ setModo(null); setMsg(null); }, 5000);
+    } catch(e) {
+      setMsg({ tipo:"error", texto:"No se pudo enviar el email. Intentá de nuevo." });
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ background:BG, borderRadius:14, padding:"20px", marginBottom:16, border:`1.5px solid ${BR}` }}>
+      <div style={{ fontSize:13, fontWeight:700, color:TM, marginBottom:14 }}>🔒 Contraseña</div>
+
+      {!modo && (
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          <button onClick={()=>{ setModo("cambiar"); resetForm(); }}
+            style={{ flex:1, padding:"9px 16px", borderRadius:10, background:`linear-gradient(135deg,${P},${PD})`,
+              color:"#fff", border:"none", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
+            🔑 Cambiar contraseña
+          </button>
+          <button onClick={()=>{ setModo("recuperar"); resetForm(); }}
+            style={{ flex:1, padding:"9px 16px", borderRadius:10, border:`1.5px solid ${BR}`,
+              background:"transparent", color:TM, cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
+            📧 Olvidé mi contraseña
+          </button>
+        </div>
+      )}
+
+      {modo === "cambiar" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {[
+            { label:"Contraseña actual", val:passActual, set:setPassActual },
+            { label:"Nueva contraseña",  val:passNueva,  set:setPassNueva },
+            { label:"Repetir nueva",     val:passConf,   set:setPassConf },
+          ].map(f=>(
+            <input key={f.label} type="password" value={f.val} onChange={e=>f.set(e.target.value)}
+              placeholder={f.label}
+              style={{ padding:"10px 14px", borderRadius:10, border:`1.5px solid ${BR}`,
+                fontFamily:"inherit", fontSize:14, outline:"none", color:TX, background:SF,
+                width:"100%", boxSizing:"border-box" }}
+              onFocus={e=>e.target.style.borderColor=P}
+              onBlur={e=>e.target.style.borderColor=BR}
+            />
+          ))}
+          {msg && <div style={{ fontSize:12, fontWeight:600, color:msg.tipo==="ok"?OK:ER, padding:"6px 10px", borderRadius:8, background:msg.tipo==="ok"?"#F0FDF4":"#FEF2F2" }}>{msg.texto}</div>}
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={handleCambiar} disabled={loading}
+              style={{ flex:1, padding:"10px", borderRadius:10, background:`linear-gradient(135deg,${P},${PD})`,
+                color:"#fff", border:"none", cursor:loading?"not-allowed":"pointer",
+                fontWeight:800, fontSize:14, fontFamily:"inherit", opacity:loading?.7:1 }}>
+              {loading ? "Guardando…" : "✅ Guardar"}
+            </button>
+            <button onClick={()=>{ setModo(null); resetForm(); }}
+              style={{ padding:"10px 16px", borderRadius:10, border:`1.5px solid ${BR}`,
+                background:"transparent", color:TM, cursor:"pointer", fontWeight:700, fontFamily:"inherit" }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {modo === "recuperar" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ fontSize:13, color:TM, lineHeight:1.5 }}>
+            Te enviaremos un link a <strong>{user.email}</strong> para que puedas crear una nueva contraseña.
+          </div>
+          {msg && <div style={{ fontSize:12, fontWeight:600, color:msg.tipo==="ok"?OK:ER, padding:"6px 10px", borderRadius:8, background:msg.tipo==="ok"?"#F0FDF4":"#FEF2F2" }}>{msg.texto}</div>}
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={handleRecuperar} disabled={loading}
+              style={{ flex:1, padding:"10px", borderRadius:10, background:`linear-gradient(135deg,${P},${PD})`,
+                color:"#fff", border:"none", cursor:loading?"not-allowed":"pointer",
+                fontWeight:800, fontSize:14, fontFamily:"inherit", opacity:loading?.7:1 }}>
+              {loading ? "Enviando…" : "📧 Enviar link"}
+            </button>
+            <button onClick={()=>{ setModo(null); resetForm(); }}
+              style={{ padding:"10px 16px", borderRadius:10, border:`1.5px solid ${BR}`,
+                background:"transparent", color:TM, cursor:"pointer", fontWeight:700, fontFamily:"inherit" }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -8162,6 +8285,42 @@ function LegalView({ onVolver, initialTab="terminos" }) {
 
 export default function App() {
   const [view, setView] = useState(()=>sessionStorage.getItem("adminView")||"front");
+  const [pwaPrompt, setPwaPrompt] = useState(null);
+  const [showPwaBanner, setShowPwaBanner] = useState(false);
+
+  // Registrar service worker y capturar evento de instalación PWA
+  useEffect(()=>{
+    // Registrar SW
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(()=>{});
+    }
+    // Capturar el evento beforeinstallprompt
+    const handler = (e) => {
+      e.preventDefault();
+      setPwaPrompt(e);
+      // Mostrar banner solo si no lo rechazó antes
+      if (!localStorage.getItem("pwaDeclined")) {
+        setTimeout(() => setShowPwaBanner(true), 3000); // esperar 3s antes de mostrar
+      }
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  },[]);
+
+  const handleInstalarPwa = async () => {
+    if (!pwaPrompt) return;
+    pwaPrompt.prompt();
+    const { outcome } = await pwaPrompt.userChoice;
+    if (outcome === "accepted") {
+      setShowPwaBanner(false);
+      setPwaPrompt(null);
+    }
+  };
+
+  const handleRechazarPwa = () => {
+    setShowPwaBanner(false);
+    localStorage.setItem("pwaDeclined", "1");
+  };
   const [adminRol, setAdminRol] = useState(()=>sessionStorage.getItem("adminRol")||"admin");
   const [legalTab, setLegalTab] = useState("terminos");
   const [user, setUser] = useState(null);
@@ -8415,6 +8574,44 @@ export default function App() {
       {view==="front" && (
         <div style={{ position:"fixed",bottom:6,right:8,fontSize:9,color:"rgba(0,0,0,.06)",userSelect:"none",pointerEvents:"none",fontFamily:"monospace" }}>
           Ctrl+Shift+A
+        </div>
+      )}
+
+      {/* Banner PWA - instalar en pantalla de inicio */}
+      {showPwaBanner && (
+        <div style={{
+          position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)",
+          zIndex:9999, background:"#fff", borderRadius:20, padding:"18px 20px",
+          boxShadow:"0 8px 40px rgba(0,0,0,.25)", width:"calc(100% - 32px)", maxWidth:400,
+          fontFamily:"Nunito,sans-serif", display:"flex", flexDirection:"column", gap:14,
+          border:"1.5px solid #E5E7EB",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <img src="/logo192.png" alt="Logo" style={{ width:56, height:56, borderRadius:14, flexShrink:0, objectFit:"cover" }}/>
+            <div>
+              <div style={{ fontWeight:800, fontSize:15, color:"#1A1A2E" }}>Clasificados Chapa J</div>
+              <div style={{ fontSize:12, color:"#6B7280", marginTop:2 }}>Instalá la app en tu pantalla de inicio y accedé más rápido 🚀</div>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={handleInstalarPwa} style={{
+              flex:1, padding:"11px", borderRadius:12,
+              background:"linear-gradient(135deg,#FF6B2B,#E05520)",
+              color:"#fff", border:"none", cursor:"pointer",
+              fontWeight:800, fontSize:14, fontFamily:"inherit",
+              boxShadow:"0 4px 14px #FF6B2B44",
+            }}>
+              📲 Instalar app
+            </button>
+            <button onClick={handleRechazarPwa} style={{
+              padding:"11px 16px", borderRadius:12,
+              border:"1.5px solid #E5E7EB", background:"transparent",
+              color:"#6B7280", cursor:"pointer",
+              fontWeight:700, fontSize:13, fontFamily:"inherit",
+            }}>
+              Ahora no
+            </button>
+          </div>
         </div>
       )}
     </>
