@@ -138,14 +138,27 @@ exports.webhookMP = onRequest(
 
       // Planes de tienda
       if (plan.startsWith("tienda_")) {
-        const snap = await db.collection("tiendas").where("userId","==",userId).get();
-        if (!snap.empty) {
-          const dias = plan.endsWith("_90") ? 90 : 30;
-          const tipoPlan = plan.includes("diamante") ? "diamante" : "esmeralda";
-          const hasta = new Date();
-          hasta.setDate(hasta.getDate() + dias);
-          await snap.docs[0].ref.update({ activa: true, plan: tipoPlan, planHasta: hasta });
+        const dias = plan.endsWith("_90") ? 90 : 30;
+        const tipoPlan = plan.includes("diamante") ? "diamante" : "esmeralda";
+        const hasta = new Date();
+        hasta.setDate(hasta.getDate() + dias);
+
+        // 1. Actualizar la tienda
+        const snapTienda = await db.collection("tiendas").where("userId","==",userId).get();
+        if (!snapTienda.empty) {
+          await snapTienda.docs[0].ref.update({ activa: true, plan: tipoPlan, planHasta: hasta });
         }
+
+        // 2. Actualizar el usuario con el plan de tienda
+        const snapUser = await db.collection("usuarios").where("uid","==",userId).get();
+        if (!snapUser.empty) {
+          await snapUser.docs[0].ref.update({ tiendaPlan: tipoPlan, tiendaPlanHasta: hasta });
+        }
+
+        // 3. Actualizar el plan en TODOS sus anuncios existentes
+        const snapAnuncios = await db.collection("anuncios").where("uid","==",userId).get();
+        await Promise.all(snapAnuncios.docs.map(d => d.ref.update({ plan: tipoPlan })));
+
         return res.status(200).send("ok");
       }
 
