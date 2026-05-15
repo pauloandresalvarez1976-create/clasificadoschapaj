@@ -8161,8 +8161,8 @@ function LegalView({ onVolver, initialTab="terminos" }) {
 })();
 
 export default function App() {
-  const [view, setView] = useState("front");
-  const [adminRol, setAdminRol] = useState("admin");
+  const [view, setView] = useState(()=>sessionStorage.getItem("adminView")||"front");
+  const [adminRol, setAdminRol] = useState(()=>sessionStorage.getItem("adminRol")||"admin");
   const [legalTab, setLegalTab] = useState("terminos");
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -8234,6 +8234,17 @@ export default function App() {
   const openTienda   = (t)        => { pushNav(); setSelTienda(t); };
   const openTiendas  = ()         => { pushNav(); setVistaActiva("tiendas"); };
   const openView     = (v, extra) => { pushNav(); if(extra) setLegalTab(extra); setView(v); };
+
+  // Persistir view y rol en sessionStorage para sobrevivir recargas
+  useEffect(()=>{
+    if(view==="admin") {
+      sessionStorage.setItem("adminView","admin");
+      sessionStorage.setItem("adminRol",adminRol);
+    } else {
+      sessionStorage.removeItem("adminView");
+      sessionStorage.removeItem("adminRol");
+    }
+  },[view, adminRol]);
 
   // ── ABRIR ANUNCIO DESDE URL (?anuncio=ID) ────────────────────
   useEffect(()=>{
@@ -8362,7 +8373,7 @@ export default function App() {
       )}
 
       {view==="admin" && (
-        <AdminPanel onExit={()=>setView("front")} combo="Ctrl+Shift+A" rol={adminRol}/>
+        <AdminPanel onExit={()=>{ sessionStorage.removeItem("adminView"); sessionStorage.removeItem("adminRol"); setView("front"); }} combo="Ctrl+Shift+A" rol={adminRol}/>
       )}
 
       {showAuth && (
