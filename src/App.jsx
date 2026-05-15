@@ -1248,6 +1248,8 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
 function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, unreadMsgs=0, searchQuery, setSearchQuery, onNavClick, onSearch, siteInfo={} }) {
   const [scrolled, setScrolled] = useState(false);
   const isMob = useIsMobile();
+  const [dark, setDark] = useState(()=>localStorage.getItem("chapaj_dark")==="1");
+  useEffect(()=>{ document.body.classList.toggle("dark-mode",dark); localStorage.setItem("chapaj_dark",dark?"1":"0"); },[dark]);
   useEffect(()=>{ const h=()=>setScrolled(window.scrollY>10); window.addEventListener("scroll",h); return()=>window.removeEventListener("scroll",h); },[]);
 
   return (
@@ -1320,6 +1322,12 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
               Mi Cuenta
             </button>
           )}
+          {/* Botón modo oscuro */}
+          <button onClick={()=>setDark(d=>!d)} title={dark?"Modo claro":"Modo oscuro"}
+            style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",
+              cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            {dark?"☀️":"🌙"}
+          </button>
           <button onClick={user?onPublicar:onLogin} style={{ padding:"8px",borderRadius:8,
             background:`linear-gradient(135deg,${P},${PD})`,color:"#fff",border:"none",
             cursor:"pointer",fontWeight:700,fontSize:13,fontFamily:"inherit",boxShadow:`0 4px 12px ${P}44`,
@@ -8079,6 +8087,15 @@ export default function App() {
         ::-webkit-scrollbar-thumb:active{background:#FF6B2B;}
         html{scrollbar-width:thin;scrollbar-color:#B0B0B0 #F1F1F1;}
         @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+        body.dark-mode { background:#111827 !important; color:#F9FAFB !important; }
+        body.dark-mode nav { background:rgba(17,24,39,.97) !important; border-color:#374151 !important; }
+        body.dark-mode input, body.dark-mode textarea, body.dark-mode select { background:#1F2937 !important; color:#F9FAFB !important; border-color:#374151 !important; }
+        body.dark-mode button:not([style*="background:linear-gradient"]):not([style*="background:#"]):not([style*="background: linear"]) { color:#F9FAFB; }
+        body.dark-mode [style*="background:#FFFFFF"], body.dark-mode [style*="background: #FFFFFF"], body.dark-mode [style*="background:white"] { background:#1F2937 !important; }
+        body.dark-mode [style*="background:#F7F7FA"], body.dark-mode [style*="background:#F9FAFB"] { background:#111827 !important; }
+        body.dark-mode [style*="color:#111827"], body.dark-mode [style*="color: #111827"] { color:#F9FAFB !important; }
+        body.dark-mode [style*="color:#4B5563"] { color:#9CA3AF !important; }
+        body.dark-mode [style*="border-color:#E5E7EB"], body.dark-mode [style*="border:1px solid #E5E7EB"], body.dark-mode [style*="border: 1px solid #E5E7EB"] { border-color:#374151 !important; }
       `}</style>
 
       {view==="front" && (
