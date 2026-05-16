@@ -369,6 +369,7 @@ function PublicarModal({ user, userData, onClose, onSuccess }) {
   const [mostrarWA, setMostrarWA] = useState(true);
   const [fotos, setFotos] = useState([]);
   const [previews, setPreviews] = useState([]);
+  const [videoUrl, setVideoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
@@ -487,6 +488,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
         titulo, descripcion: desc, precio: precio||"Consultar", moneda,
         categoria, subcategoria, estado, localidad,
         fotos: urls, fotoPortada: urls[0]||"",
+        videoUrl: videoUrl || "",
         contactoWA: mostrarWA?contactoWA:"", mostrarWA,
         uid: user.uid, nombreVendedor: userData?.nombre||user.displayName||"", esComercio: !!(userData?.tiendaId),
         vendedorVerificado: user.emailVerified || false,
@@ -609,6 +611,31 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
             <div style={{ display:"flex",justifyContent:"space-between" }}>
               <Btn outline color={TM} onClick={()=>setStep(1)}>← Anterior</Btn>
               <Btn onClick={()=>setStep(3)}>Siguiente →</Btn>
+            </div>
+
+            {/* Video YouTube */}
+            <div style={{ marginTop:16, background:BG, borderRadius:12, padding:16 }}>
+              <div style={{ fontWeight:600, color:AC, marginBottom:4, fontSize:14 }}>🎬 Video de YouTube <span style={{ color:TL, fontWeight:400 }}>(opcional)</span></div>
+              <div style={{ fontSize:12, color:TL, marginBottom:10 }}>Pegá el link de un video que muestre tu producto</div>
+              <input
+                value={videoUrl}
+                onChange={e=>setVideoUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                style={{ width:"100%", padding:"10px 12px", borderRadius:8, border:`1.5px solid ${BR}`,
+                  fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"Nunito,sans-serif" }}
+              />
+              {videoUrl && (()=>{
+                const match = videoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                const vid = match?.[1];
+                return vid ? (
+                  <div style={{ marginTop:10, borderRadius:8, overflow:"hidden", border:`1px solid ${BR}` }}>
+                    <img src={`https://img.youtube.com/vi/${vid}/hqdefault.jpg`} style={{ width:"100%", display:"block" }} alt="Vista previa"/>
+                    <div style={{ padding:"6px 10px", fontSize:12, color:TL, background:SF }}>✅ Video válido — se mostrará en el anuncio</div>
+                  </div>
+                ) : videoUrl.length > 5 ? (
+                  <div style={{ marginTop:8, fontSize:12, color:"#DC2626" }}>⚠️ Link de YouTube no válido</div>
+                ) : null;
+              })()}
             </div>
           </>
         )}
@@ -980,6 +1007,38 @@ function DenunciarBtn({ anuncio, user }) {
   );
 }
 
+function YouTubeEmbed({ videoId }) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div style={{ background:SF, borderRadius:16, overflow:"hidden", border:`1px solid ${BR}` }}>
+      <div style={{ padding:"12px 16px 8px", fontWeight:600, color:AC, fontSize:14 }}>🎬 Video del producto</div>
+      <div style={{ position:"relative", paddingBottom:"56.25%", background:"#000", cursor: playing ? "default" : "pointer" }}
+        onClick={()=>!playing && setPlaying(true)}>
+        {playing ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+            style={{ position:"absolute", inset:0, width:"100%", height:"100%", border:"none" }}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          />
+        ) : (
+          <>
+            <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+              style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} alt="Video"/>
+            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ width:64, height:64, borderRadius:"50%", background:"rgba(255,0,0,.85)",
+                display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 20px rgba(0,0,0,.4)" }}>
+                <div style={{ width:0, height:0, borderTop:"12px solid transparent", borderBottom:"12px solid transparent",
+                  borderLeft:"20px solid #fff", marginLeft:4 }}/>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AnuncioDetalle({ anuncio, onClose, user }) {
   const [fotoIdx, setFotoIdx] = useState(0);
   const [consulta, setConsulta] = useState("");
@@ -1144,6 +1203,14 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
               </div>
             )}
           </div>{/* end foto card */}
+
+          {/* Video YouTube */}
+          {anuncio.videoUrl && (()=>{
+            const match = anuncio.videoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            const vid = match?.[1];
+            return vid ? <YouTubeEmbed videoId={vid} /> : null;
+          })()}
+
           <div style={{ background:SF,borderRadius:16,padding:24,border:`1px solid ${BR}` }}>
           <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:16,marginBottom:20 }}>
             <div>
