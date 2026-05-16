@@ -32,6 +32,16 @@ const P  = "#FF6B2B", PD = "#E05520", AC = "#1A1A2E";
 const OK = "#10B981", WA = "#F59E0B", ER = "#EF4444", IN = "#3B82F6";
 const GO = "#F5A623", BR = "#E5E7EB", TX = "#111827", TM = "#4B5563";
 const TL = "#9CA3AF", BG = "#F7F7FA", SF = "#FFFFFF";
+
+const DOMINIOS_DESECHABLES = [
+  "mailinator.com","tempmail.com","guerrillamail.com","10minutemail.com",
+  "throwam.com","yopmail.com","sharklasers.com","grr.la","spam4.me",
+  "trashmail.com","dispostable.com","maildrop.cc","fakeinbox.com",
+  "tempinbox.com","discard.email","temp-mail.org","emailondeck.com",
+  "mytemp.email","spamgourmet.com","mailnull.com","trashmail.at",
+  "getnada.com","mohmal.com","throwam.com","tempr.email","zetmail.com",
+  "spamhereplease.com","trashmail.me","spamfree24.org","mailnew.com"
+];
 // Admin aliases
 const PRIMARY=P, PRIMARY_D=PD, ACCENT=AC, SUCCESS=OK, WARNING=WA;
 const DANGER=ER, INFO=IN, GOLD=GO, BORDER=BR, TEXT=TX;
@@ -250,6 +260,10 @@ function AuthModal({ onClose, onSuccess }) {
   const handleRegister = async () => {
     if (!email||!pass||!nombre) return setError("Completá todos los campos obligatorios");
     if (pass.length < 6) return setError("La contraseña debe tener al menos 6 caracteres");
+    const dominioEmail = email.split("@")[1]?.toLowerCase();
+    if (!dominioEmail || DOMINIOS_DESECHABLES.includes(dominioEmail)) {
+      return setError("No se permiten emails temporales o desechables. Usá tu email real.");
+    }
     setLoading(true); setError("");
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
