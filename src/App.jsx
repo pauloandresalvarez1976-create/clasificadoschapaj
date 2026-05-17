@@ -5326,8 +5326,51 @@ function FrontSite({ user, userData, onLogin, onPublicar, onMiCuenta, onLegal, o
       {/* Banner home-bottom */}
       <BannerZone banners={homeBanners} pos="home-bottom"/>
 
+      {/* Sección Publicite Aquí */}
+      <section style={{ background:`linear-gradient(135deg,${AC} 0%,#2d2d5e 100%)`,padding:"48px 20px",marginTop:44 }}>
+        <div style={{ maxWidth:900,margin:"0 auto",textAlign:"center" }}>
+          <div style={{ fontSize:36,marginBottom:8 }}>📢</div>
+          <h2 style={{ fontFamily:"'Georgia',serif",fontSize:26,fontWeight:800,color:"#fff",marginBottom:8 }}>
+            ¡Publicite en Clasificados Chapa J!
+          </h2>
+          <p style={{ color:"rgba(255,255,255,.65)",fontSize:14,marginBottom:32,maxWidth:560,margin:"0 auto 32px" }}>
+            Llegá a miles de sanjuaninos que buscan comprar y vender cada día. Espacios publicitarios disponibles en posiciones estratégicas.
+          </p>
+
+          {/* Cards de espacios */}
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:36 }}>
+            {[
+              { emoji:"🔝", pos:"Header", desc:"Máxima visibilidad. Aparece en la parte superior de todas las páginas.", precio:"Consultar" },
+              { emoji:"🏠", pos:"Home Principal", desc:"Banner destacado en la página de inicio. Ideal para llegar a nuevos usuarios.", precio:"Consultar" },
+              { emoji:"📋", pos:"Entre anuncios", desc:"Se muestra intercalado entre los listados. Alto impacto y clics.", precio:"Consultar" },
+              { emoji:"⬇️", pos:"Footer", desc:"Presente en toda la plataforma. Excelente para branding y reconocimiento.", precio:"Consultar" },
+            ].map(b=>(
+              <div key={b.pos} style={{ background:"rgba(255,255,255,.08)",border:"1.5px solid rgba(255,255,255,.15)",borderRadius:14,padding:"20px 16px",textAlign:"left" }}>
+                <div style={{ fontSize:28,marginBottom:8 }}>{b.emoji}</div>
+                <div style={{ fontWeight:800,color:"#fff",fontSize:15,marginBottom:6 }}>{b.pos}</div>
+                <div style={{ color:"rgba(255,255,255,.55)",fontSize:12,lineHeight:1.6,marginBottom:12 }}>{b.desc}</div>
+                <div style={{ fontWeight:700,color:P,fontSize:13 }}>{b.precio}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Botón WhatsApp */}
+          <button onClick={()=>{
+            const wa="549"+siteWhatsapp;
+            window.open(`https://wa.me/${wa}?text=${encodeURIComponent("Hola! Me interesa publicitar en Clasificados Chapa J. ¿Pueden darme información sobre los espacios disponibles y precios?")}`, "_blank");
+          }} style={{ display:"inline-flex",alignItems:"center",gap:10,padding:"14px 32px",borderRadius:12,
+            background:"#25D366",color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:16,
+            fontFamily:"inherit",boxShadow:"0 8px 24px rgba(37,211,102,.35)" }}>
+            <span style={{ fontSize:22 }}>💬</span> Consultá por WhatsApp
+          </button>
+          <p style={{ color:"rgba(255,255,255,.35)",fontSize:11,marginTop:14 }}>
+            Respondemos en el horario de atención · Lunes a Viernes 9 a 18hs
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer style={{ background:AC,color:"#fff",marginTop:44 }}>
+      <footer style={{ background:AC,color:"#fff",marginTop:0 }}>
         <div style={{ maxWidth:1200,margin:"0 auto",padding:"44px 20px 22px" }}>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:28,marginBottom:36 }}>
             <div>
