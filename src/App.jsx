@@ -1331,6 +1331,7 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
   const [scrolled, setScrolled] = useState(false);
   const isMob = useIsMobile();
   const [dark, setDark] = useState(()=>localStorage.getItem("chapaj_dark")==="1");
+  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(()=>{ document.body.classList.toggle("dark-mode",dark); localStorage.setItem("chapaj_dark",dark?"1":"0"); },[dark]);
   useEffect(()=>{ const h=()=>setScrolled(window.scrollY>10); window.addEventListener("scroll",h); return()=>window.removeEventListener("scroll",h); },[]);
 
@@ -1365,11 +1366,25 @@ function Navbar({ user, onLogin, onPublicar, onMiCuenta, onMensajes, onLogout, u
                   ✉️
                   {unreadMsgs>0&&<span style={{ position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center" }}>{unreadMsgs>9?"9+":unreadMsgs}</span>}
                 </button>
-                <button onClick={onMiCuenta} style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                  <div style={{ width:26,height:26,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
-                    {(user.displayName||user.email||"U")[0].toUpperCase()}
-                  </div>
-                </button>
+                <div style={{ position:"relative" }}>
+                  <button onClick={()=>setMenuOpen(o=>!o)} style={{ width:36,height:36,borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                    <div style={{ width:26,height:26,borderRadius:"50%",background:AC,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700 }}>
+                      {(user.displayName||user.email||"U")[0].toUpperCase()}
+                    </div>
+                  </button>
+                  {menuOpen && (
+                    <div style={{ position:"absolute",top:42,right:0,background:SF,border:`1.5px solid ${BR}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.12)",zIndex:999,minWidth:150,overflow:"hidden" }}
+                      onClick={()=>setMenuOpen(false)}>
+                      <button onClick={onMiCuenta} style={{ width:"100%",padding:"12px 16px",background:"none",border:"none",textAlign:"left",fontSize:14,fontWeight:600,color:TX,cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontFamily:"inherit" }}>
+                        👤 Mi cuenta
+                      </button>
+                      <div style={{ height:1,background:BR }}/>
+                      <button onClick={onLogout} style={{ width:"100%",padding:"12px 16px",background:"none",border:"none",textAlign:"left",fontSize:14,fontWeight:600,color:ER,cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontFamily:"inherit" }}>
+                        🚪 Salir
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <button onClick={onLogin} style={{ padding:"7px 12px",borderRadius:8,border:`1.5px solid ${BR}`,background:"transparent",color:TX,cursor:"pointer",fontWeight:600,fontSize:12,fontFamily:"inherit",flexShrink:0 }}>
