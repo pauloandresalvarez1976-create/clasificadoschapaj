@@ -82,9 +82,9 @@ exports.crearPreferencia = onRequest(
           payer: { email },
           external_reference: `${userId}_${plan}`,
           back_urls: {
-            success: "https://clasificadoschapaj.netlify.app/?pago=ok",
-            failure: "https://clasificadoschapaj.netlify.app/?pago=error",
-            pending: "https://clasificadoschapaj.netlify.app/?pago=pendiente",
+            success: "https://clasificadoschapaj.com.ar/?pago=ok",
+            failure: "https://clasificadoschapaj.com.ar/?pago=error",
+            pending: "https://clasificadoschapaj.com.ar/?pago=pendiente",
           },
           auto_return: "approved",
           notification_url: "https://us-central1-clasificados-chapa-j.cloudfunctions.net/webhookMP",
