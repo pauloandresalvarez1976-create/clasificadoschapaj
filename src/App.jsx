@@ -274,6 +274,12 @@ function AuthModal({ onClose, onSuccess }) {
         rol: "usuario", verificado: false, plan: "cuarzo", puntos: 0,
         rating: 0, totalCalificaciones: 0, anunciosActivos: 0, createdAt: serverTimestamp(),
       });
+      await addDoc(collection(db, "alertas"), {
+        uid: "admin", tipo: "verificacion", icono: "👤",
+        titulo: "Nuevo usuario registrado",
+        mensaje: `${nombre} (${email}) se registró`,
+        leido: false, createdAt: serverTimestamp(),
+      });
       onSuccess();
     } catch(e) {
       setError(e.code==="auth/email-already-in-use"?"Este email ya está registrado":"Error al registrarse. Intentá de nuevo.");
