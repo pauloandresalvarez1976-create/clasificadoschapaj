@@ -2540,14 +2540,20 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [editandoId, setEditandoId] = React.useState(null);
   const [editTitulo, setEditTitulo] = React.useState("");
   const [editPrecio, setEditPrecio] = React.useState("");
+  const [editDesc, setEditDesc] = React.useState("");
+  const [editCat, setEditCat] = React.useState("");
+  const [editSub, setEditSub] = React.useState("");
+  const [editLocalidad, setEditLocalidad] = React.useState("");
+  const [editEstado, setEditEstado] = React.useState("");
+  const [editMoneda, setEditMoneda] = React.useState("ARS");
   const [savingEdit, setSavingEdit] = React.useState(false);
   const [showEditFotos, setShowEditFotos] = React.useState(null); // anuncio obj
   const [showDestacar, setShowDestacar] = React.useState(null);   // anuncio obj
 
   const handleSaveEdit = async (id) => {
     setSavingEdit(true);
-    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
-    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
+    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, descripcion:editDesc, categoria:editCat, subcategoria:editSub, localidad:editLocalidad, estado:editEstado, moneda:editMoneda, updatedAt:serverTimestamp() });
+    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio,descripcion:editDesc,categoria:editCat,subcategoria:editSub,localidad:editLocalidad,estado:editEstado,moneda:editMoneda}:a));
     setEditandoId(null); setSavingEdit(false);
   };
 
@@ -2741,20 +2747,60 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                       {/* Info */}
                       <div style={{ flex:1,minWidth:0 }}>
                         {editando ? (
-                          <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
+                          <div style={{ display:"flex",flexDirection:"column",gap:7 }}>
+                            {/* Título */}
                             <input value={editTitulo} onChange={e=>setEditTitulo(e.target.value)}
-                              style={{ padding:"5px 8px",borderRadius:6,border:`1.5px solid ${P}`,fontFamily:"inherit",fontSize:13,fontWeight:600,outline:"none" }}/>
+                              placeholder="Título"
+                              style={{ padding:"6px 9px",borderRadius:6,border:`1.5px solid ${P}`,fontFamily:"inherit",fontSize:13,fontWeight:600,outline:"none",width:"100%" }}/>
+                            {/* Descripción */}
+                            <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)}
+                              placeholder="Descripción del anuncio..."
+                              rows={3}
+                              style={{ padding:"6px 9px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none",resize:"vertical",width:"100%" }}/>
+                            {/* Categoría + Subcategoría */}
+                            <div style={{ display:"flex",gap:6 }}>
+                              <select value={editCat} onChange={e=>{ setEditCat(e.target.value); setEditSub(""); }}
+                                style={{ flex:1,padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none",background:SF }}>
+                                <option value="">Categoría...</option>
+                                {DEFAULT_CATS.map(c=><option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+                              </select>
+                              <select value={editSub} onChange={e=>setEditSub(e.target.value)}
+                                style={{ flex:1,padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none",background:SF }}>
+                                <option value="">Subcategoría...</option>
+                                {(DEFAULT_CATS.find(c=>c.name===editCat)?.sub||[]).map(s=><option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            {/* Localidad + Estado */}
+                            <div style={{ display:"flex",gap:6 }}>
+                              <input value={editLocalidad} onChange={e=>setEditLocalidad(e.target.value)}
+                                placeholder="Localidad"
+                                style={{ flex:1,padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none" }}/>
+                              <select value={editEstado} onChange={e=>setEditEstado(e.target.value)}
+                                style={{ flex:1,padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none",background:SF }}>
+                                <option value="">Estado...</option>
+                                <option value="nuevo">Nuevo</option>
+                                <option value="usado">Usado</option>
+                              </select>
+                            </div>
+                            {/* Precio + Moneda */}
                             <div style={{ display:"flex",gap:6,alignItems:"center" }}>
-                              <span style={{ fontSize:12,color:TL }}>$</span>
+                              <select value={editMoneda} onChange={e=>setEditMoneda(e.target.value)}
+                                style={{ padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none",background:SF }}>
+                                <option value="ARS">$ ARS</option>
+                                <option value="USD">U$D USD</option>
+                              </select>
                               <input value={editPrecio} onChange={e=>setEditPrecio(e.target.value)}
-                                style={{ width:100,padding:"4px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none" }}
-                                placeholder="Precio"/>
+                                style={{ flex:1,padding:"5px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none" }}
+                                placeholder="Precio (vacío = Consultar)" type="number"/>
+                            </div>
+                            {/* Botones */}
+                            <div style={{ display:"flex",gap:6 }}>
                               <button onClick={()=>handleSaveEdit(a.id)} disabled={savingEdit}
-                                style={{ padding:"4px 12px",borderRadius:6,background:OK,color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>
-                                {savingEdit?"...":"✓ Guardar"}
+                                style={{ flex:1,padding:"6px 12px",borderRadius:6,background:OK,color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>
+                                {savingEdit?"Guardando...":"✓ Guardar cambios"}
                               </button>
                               <button onClick={()=>setEditandoId(null)}
-                                style={{ padding:"4px 10px",borderRadius:6,background:"transparent",color:TL,border:`1px solid ${BR}`,cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>✕</button>
+                                style={{ padding:"6px 12px",borderRadius:6,background:"transparent",color:TL,border:`1px solid ${BR}`,cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>✕</button>
                             </div>
                           </div>
                         ) : (
@@ -2783,7 +2829,7 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
                       {/* Botones acción - fila inferior responsive */}
                       {!editando && (
                         <div style={{ display:"flex",gap:6,padding:"8px 12px 10px",flexWrap:"wrap",borderTop:`1px solid ${BR}` }}>
-                          <button onClick={()=>{ setEditandoId(a.id); setEditTitulo(a.titulo); setEditPrecio(a.precio||""); }}
+                          <button onClick={()=>{ setEditandoId(a.id); setEditTitulo(a.titulo); setEditPrecio(a.precio||""); setEditDesc(a.descripcion||""); setEditCat(a.categoria||""); setEditSub(a.subcategoria||""); setEditLocalidad(a.localidad||""); setEditEstado(a.estado||""); setEditMoneda(a.moneda||"ARS"); }}
                             style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:P,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
                             ✏️ Editar
                           </button>
