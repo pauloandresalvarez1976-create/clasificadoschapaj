@@ -2540,14 +2540,20 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
   const [editandoId, setEditandoId] = React.useState(null);
   const [editTitulo, setEditTitulo] = React.useState("");
   const [editPrecio, setEditPrecio] = React.useState("");
+  const [editDesc, setEditDesc] = React.useState("");
+  const [editCat, setEditCat] = React.useState("");
+  const [editSub, setEditSub] = React.useState("");
+  const [editLocalidad, setEditLocalidad] = React.useState("");
+  const [editEstado, setEditEstado] = React.useState("");
+  const [editMoneda, setEditMoneda] = React.useState("ARS");
   const [savingEdit, setSavingEdit] = React.useState(false);
   const [showEditFotos, setShowEditFotos] = React.useState(null); // anuncio obj
   const [showDestacar, setShowDestacar] = React.useState(null);   // anuncio obj
 
   const handleSaveEdit = async (id) => {
     setSavingEdit(true);
-    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, updatedAt:serverTimestamp() });
-    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio}:a));
+    await updateDoc(doc(db,"anuncios",id),{ titulo:editTitulo, precio:editPrecio, descripcion:editDesc, categoria:editCat, subcategoria:editSub, localidad:editLocalidad, estado:editEstado, moneda:editMoneda, updatedAt:serverTimestamp() });
+    setMisAnuncios(prev=>prev.map(a=>a.id===id?{...a,titulo:editTitulo,precio:editPrecio,descripcion:editDesc,categoria:editCat,subcategoria:editSub,localidad:editLocalidad,estado:editEstado,moneda:editMoneda}:a));
     setEditandoId(null); setSavingEdit(false);
   };
 
@@ -2740,50 +2746,31 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
 
                       {/* Info */}
                       <div style={{ flex:1,minWidth:0 }}>
-                        {editando ? (
-                          <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
-                            <input value={editTitulo} onChange={e=>setEditTitulo(e.target.value)}
-                              style={{ padding:"5px 8px",borderRadius:6,border:`1.5px solid ${P}`,fontFamily:"inherit",fontSize:13,fontWeight:600,outline:"none" }}/>
-                            <div style={{ display:"flex",gap:6,alignItems:"center" }}>
-                              <span style={{ fontSize:12,color:TL }}>$</span>
-                              <input value={editPrecio} onChange={e=>setEditPrecio(e.target.value)}
-                                style={{ width:100,padding:"4px 8px",borderRadius:6,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:12,outline:"none" }}
-                                placeholder="Precio"/>
-                              <button onClick={()=>handleSaveEdit(a.id)} disabled={savingEdit}
-                                style={{ padding:"4px 12px",borderRadius:6,background:OK,color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>
-                                {savingEdit?"...":"✓ Guardar"}
-                              </button>
-                              <button onClick={()=>setEditandoId(null)}
-                                style={{ padding:"4px 10px",borderRadius:6,background:"transparent",color:TL,border:`1px solid ${BR}`,cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>✕</button>
-                            </div>
+                        <>
+                          <div style={{ fontWeight:700,fontSize:13,color:TX,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2 }}>{a.titulo}</div>
+                          <div style={{ fontSize:11,color:TL,marginBottom:3 }}>{a.categoria}{a.localidad?` · ${a.localidad}`:""} · {timeAgo(a.createdAt)}</div>
+                          <div style={{ fontSize:13,fontWeight:800,color:a.precio==="Consultar"?TL:AC }}>
+                            {a.precio==="Consultar"?"Consultar":`$${Number(a.precio).toLocaleString("es-AR")}`}
                           </div>
-                        ) : (
-                          <>
-                            <div style={{ fontWeight:700,fontSize:13,color:TX,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2 }}>{a.titulo}</div>
-                            <div style={{ fontSize:11,color:TL,marginBottom:3 }}>{a.categoria}{a.localidad?` · ${a.localidad}`:""} · {timeAgo(a.createdAt)}</div>
-                            <div style={{ fontSize:13,fontWeight:800,color:a.precio==="Consultar"?TL:AC }}>
-                              {a.precio==="Consultar"?"Consultar":`$${Number(a.precio).toLocaleString("es-AR")}`}
+                          {dias!==null && (
+                            <div style={{ fontSize:10,fontWeight:700,marginTop:3,
+                              color:vencido?ER:porVencer?WA:OK }}>
+                              {vencido?"⛔ Vencido":porVencer?`⚠️ Vence en ${dias} día${dias===1?"":"s"}`:`✅ Vence en ${dias} días`}
                             </div>
-                            {dias!==null && (
-                              <div style={{ fontSize:10,fontWeight:700,marginTop:3,
-                                color:vencido?ER:porVencer?WA:OK }}>
-                                {vencido?"⛔ Vencido":porVencer?`⚠️ Vence en ${dias} día${dias===1?"":"s"}`:`✅ Vence en ${dias} días`}
-                              </div>
-                            )}
-                            {a.status==="suspendido" && (
-                              <div style={{ fontSize:10,fontWeight:700,marginTop:3,color:"#DC2626" }}>
-                                🚫 Suspendido por moderación{a.motivoSuspension?` — ${a.motivoSuspension.slice(0,60)}...`:""}
-                              </div>
-                            )}
-                          </>
-                        )}
+                          )}
+                          {a.status==="suspendido" && (
+                            <div style={{ fontSize:10,fontWeight:700,marginTop:3,color:"#DC2626" }}>
+                              🚫 Suspendido por moderación{a.motivoSuspension?` — ${a.motivoSuspension.slice(0,60)}...`:""}
+                            </div>
+                          )}
+                        </>
                       </div>
 
                       </div>{/* fin fila superior */}
                       {/* Botones acción - fila inferior responsive */}
                       {!editando && (
                         <div style={{ display:"flex",gap:6,padding:"8px 12px 10px",flexWrap:"wrap",borderTop:`1px solid ${BR}` }}>
-                          <button onClick={()=>{ setEditandoId(a.id); setEditTitulo(a.titulo); setEditPrecio(a.precio||""); }}
+                          <button onClick={()=>{ setEditandoId(a.id); setEditTitulo(a.titulo); setEditPrecio(a.precio||""); setEditDesc(a.descripcion||""); setEditCat(a.categoria||""); setEditSub(a.subcategoria||""); setEditLocalidad(a.localidad||""); setEditEstado(a.estado||""); setEditMoneda(a.moneda||"ARS"); }}
                             style={{ flex:"1 1 60px",padding:"5px 4px",borderRadius:6,border:`1px solid ${P}`,color:P,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",textAlign:"center" }}>
                             ✏️ Editar
                           </button>
@@ -2856,6 +2843,101 @@ function MiCuenta({ user, userData, onClose, onPublicar, initialTab="anuncios" }
         </div>
       </div>
     </div>
+
+    {/* Modal editar anuncio completo */}
+    {editandoId && (
+      <div style={{ position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}
+        onClick={()=>setEditandoId(null)}>
+        <div style={{ background:SF,borderRadius:20,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.35)" }}
+          onClick={e=>e.stopPropagation()}>
+          {/* Header */}
+          <div style={{ background:`linear-gradient(135deg,${AC},#2D2D4E)`,padding:"20px 24px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+            <div style={{ color:"#fff",fontWeight:800,fontSize:16 }}>✏️ Editar anuncio</div>
+            <button onClick={()=>setEditandoId(null)} style={{ background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:20,padding:"4px 8px" }}>✕</button>
+          </div>
+          {/* Formulario */}
+          <div style={{ padding:24,display:"flex",flexDirection:"column",gap:16 }}>
+            {/* Título */}
+            <div>
+              <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>TÍTULO</label>
+              <input value={editTitulo} onChange={e=>setEditTitulo(e.target.value)}
+                placeholder="Título del anuncio"
+                style={{ width:"100%",padding:"10px 12px",borderRadius:8,border:`1.5px solid ${P}`,fontFamily:"inherit",fontSize:14,fontWeight:600,outline:"none",boxSizing:"border-box" }}/>
+            </div>
+            {/* Descripción */}
+            <div>
+              <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>DESCRIPCIÓN</label>
+              <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)}
+                placeholder="Describí tu anuncio con todos los detalles..."
+                rows={6}
+                style={{ width:"100%",padding:"10px 12px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",lineHeight:1.6 }}/>
+            </div>
+            {/* Categoría + Subcategoría */}
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+              <div>
+                <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>CATEGORÍA</label>
+                <select value={editCat} onChange={e=>{ setEditCat(e.target.value); setEditSub(""); }}
+                  style={{ width:"100%",padding:"9px 10px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",background:SF,boxSizing:"border-box" }}>
+                  <option value="">Seleccioná...</option>
+                  {DEFAULT_CATS.map(c=><option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>SUBCATEGORÍA</label>
+                <select value={editSub} onChange={e=>setEditSub(e.target.value)}
+                  style={{ width:"100%",padding:"9px 10px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",background:SF,boxSizing:"border-box" }}>
+                  <option value="">Seleccioná...</option>
+                  {(DEFAULT_CATS.find(c=>c.name===editCat)?.sub||[]).map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            {/* Localidad + Estado */}
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+              <div>
+                <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>LOCALIDAD</label>
+                <input value={editLocalidad} onChange={e=>setEditLocalidad(e.target.value)}
+                  placeholder="Ej: Mendoza Capital"
+                  style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",boxSizing:"border-box" }}/>
+              </div>
+              <div>
+                <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>ESTADO</label>
+                <select value={editEstado} onChange={e=>setEditEstado(e.target.value)}
+                  style={{ width:"100%",padding:"9px 10px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",background:SF,boxSizing:"border-box" }}>
+                  <option value="">Seleccioná...</option>
+                  <option value="nuevo">Nuevo</option>
+                  <option value="usado">Usado</option>
+                </select>
+              </div>
+            </div>
+            {/* Moneda + Precio */}
+            <div>
+              <label style={{ fontSize:12,fontWeight:700,color:TM,display:"block",marginBottom:5 }}>PRECIO</label>
+              <div style={{ display:"flex",gap:8 }}>
+                <select value={editMoneda} onChange={e=>setEditMoneda(e.target.value)}
+                  style={{ padding:"9px 10px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none",background:SF }}>
+                  <option value="ARS">$ ARS</option>
+                  <option value="USD">U$D USD</option>
+                </select>
+                <input value={editPrecio} onChange={e=>setEditPrecio(e.target.value)}
+                  type="number" placeholder="Vacío = Consultar"
+                  style={{ flex:1,padding:"9px 12px",borderRadius:8,border:`1.5px solid ${BR}`,fontFamily:"inherit",fontSize:13,outline:"none" }}/>
+              </div>
+            </div>
+            {/* Botones */}
+            <div style={{ display:"flex",gap:10,paddingTop:4 }}>
+              <button onClick={()=>handleSaveEdit(editandoId)} disabled={savingEdit}
+                style={{ flex:1,padding:"12px",borderRadius:10,background:`linear-gradient(135deg,${OK},#059669)`,color:"#fff",border:"none",cursor:"pointer",fontSize:14,fontWeight:800,fontFamily:"inherit",boxShadow:`0 4px 14px ${OK}44` }}>
+                {savingEdit?"Guardando...":"💾 Guardar cambios"}
+              </button>
+              <button onClick={()=>setEditandoId(null)}
+                style={{ padding:"12px 20px",borderRadius:10,background:"transparent",color:TL,border:`1.5px solid ${BR}`,cursor:"pointer",fontSize:14,fontFamily:"inherit",fontWeight:700 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Modal editar fotos */}
     {showEditFotos && (
