@@ -149,13 +149,13 @@ const Inp = ({ label, value, onChange, type="text", placeholder="", hint="", req
   </div>
 );
 
-const Txta = ({ label, value, onChange, rows=4, placeholder="" }) => (
-  <div style={{ marginBottom:16 }}>
+const Txta = ({ label, value, onChange, rows=4, placeholder="", style:extraStyle={} }) => (
+  <div style={{ marginBottom:16, display:"flex", flexDirection:"column", ...( extraStyle.flex ? {flex:extraStyle.flex} : {}) }}>
     {label && <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#4B5563", marginBottom:5 }}>{label}</label>}
     <textarea value={value} onChange={e=>onChange(e.target.value)} rows={rows} placeholder={placeholder}
       style={{ width:"100%", padding:"9px 13px", borderRadius:8, border:"1.5px solid #E5E7EB",
         fontSize:14, fontFamily:"inherit", outline:"none", color:"#111827",
-        background:"#FFFFFF", boxSizing:"border-box", resize:"vertical" }}
+        background:"#FFFFFF", boxSizing:"border-box", resize:"vertical", minHeight: extraStyle.minHeight||undefined, flex: extraStyle.flex||undefined }}
       onFocus={e=>e.target.style.borderColor=P} onBlur={e=>e.target.style.borderColor="#E5E7EB"}
     />
   </div>
@@ -513,9 +513,9 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:310,background:"rgba(0,0,0,.6)",backdropFilter:"blur(4px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto" }}>
-      <div style={{ background:SF,borderRadius:20,padding:32,width:"100%",maxWidth:560,
-        boxShadow:"0 24px 80px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
+      display:"flex",alignItems:"stretch",justifyContent:"center" }}>
+      <div style={{ background:SF,borderRadius:0,padding:"28px 32px",width:"100%",maxWidth:680,
+        boxShadow:"0 24px 80px rgba(0,0,0,.3)",height:"100vh",overflowY:"auto",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24 }}>
@@ -564,7 +564,7 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin backticks, sin texto extra
             )}
 
             <Inp label="Título del anuncio" value={titulo} onChange={setTitulo} placeholder="Ej: Vendo heladera Gafa con freezer" required />
-            <Txta label="Descripción" value={desc} onChange={setDesc} placeholder="Describí el artículo con detalles..." rows={8}/>
+            <Txta label="Descripción" value={desc} onChange={setDesc} placeholder="Describí el artículo con detalles..." rows={12} style={{ flex:1, minHeight:200 }}/>
 
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
               <Inp label="Precio" value={precio} onChange={setPrecio} placeholder="Consultar = vacío" type="number"/>
