@@ -1057,7 +1057,11 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
   const [comentario, setComentario] = useState("");
   const [calificado, setCalificado] = useState(false);
 
-  // Lightbox: cerrar con Escape, navegar con flechas
+  useEffect(()=>{
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  },[]);
+
   useEffect(() => {
     if (!lightbox) return;
     const fn = (e) => {
@@ -1068,11 +1072,6 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [lightbox, anuncio.fotos]);
-
-  useEffect(()=>{
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  },[]);
 
   useEffect(()=>{ updateDoc(doc(db,"anuncios",anuncio.id),{vistas:increment(1)}); },[]);
 
@@ -1168,33 +1167,28 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
         <div onClick={()=>setLightbox(false)}
           style={{ position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.93)",
             display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column" }}>
-          {/* Imagen */}
           <img src={fotos[fotoIdx]} onClick={e=>e.stopPropagation()}
             style={{ maxWidth:"94vw",maxHeight:"82vh",objectFit:"contain",borderRadius:8,
               boxShadow:"0 8px 48px rgba(0,0,0,.7)",userSelect:"none" }}/>
-          {/* Contador */}
           {fotos.length>1 && (
             <div style={{ color:"rgba(255,255,255,.7)",fontSize:13,fontWeight:700,marginTop:12 }}>
               {fotoIdx+1} / {fotos.length}
             </div>
           )}
-          {/* Botón cerrar */}
           <button onClick={()=>setLightbox(false)}
             style={{ position:"fixed",top:16,right:18,background:"rgba(255,255,255,.15)",
               border:"none",color:"#fff",borderRadius:"50%",width:42,height:42,
-              fontSize:20,cursor:"pointer",fontWeight:700,backdropFilter:"blur(4px)" }}>✕</button>
-          {/* Flechas */}
+              fontSize:20,cursor:"pointer",fontWeight:700 }}>✕</button>
           {fotos.length>1 && (<>
             <button onClick={e=>{e.stopPropagation();setFotoIdx(i=>(i-1+fotos.length)%fotos.length);}}
               style={{ position:"fixed",left:12,top:"50%",transform:"translateY(-50%)",
                 background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:"50%",
-                width:48,height:48,fontSize:26,cursor:"pointer",backdropFilter:"blur(4px)" }}>‹</button>
+                width:48,height:48,fontSize:26,cursor:"pointer" }}>‹</button>
             <button onClick={e=>{e.stopPropagation();setFotoIdx(i=>(i+1)%fotos.length);}}
               style={{ position:"fixed",right:12,top:"50%",transform:"translateY(-50%)",
                 background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:"50%",
-                width:48,height:48,fontSize:26,cursor:"pointer",backdropFilter:"blur(4px)" }}>›</button>
+                width:48,height:48,fontSize:26,cursor:"pointer" }}>›</button>
           </>)}
-          {/* Hint */}
           <div style={{ color:"rgba(255,255,255,.35)",fontSize:11,marginTop:8 }}>
             Clic fuera de la imagen para cerrar{fotos.length>1?" · ← → para navegar":""}
           </div>
@@ -1230,8 +1224,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
             <div style={{ position:"relative",background:BG,height:"min(360px,55vw)",minHeight:200 }}>
           {fotos.length>0 ? (
             <>
-              <img src={fotos[fotoIdx]} onClick={()=>setLightbox(true)}
-                title="Clic para ver en pantalla completa"
+              <img src={fotos[fotoIdx]} onClick={()=>setLightbox(true)} title="Clic para ver en pantalla completa"
                 style={{ width:"100%",height:"100%",objectFit:"contain",cursor:"zoom-in" }}/>
               {fotos.length>1 && (
                 <>
