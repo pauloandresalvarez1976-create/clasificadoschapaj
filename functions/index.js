@@ -7,8 +7,14 @@ const ACCESS_TOKEN = "APP_USR-7410307993640629-051011-066deffbe0abf910c06dfaaf08
 const client = new MercadoPagoConfig({ accessToken: ACCESS_TOKEN });
 
 const PRECIOS_DEFAULT = {
-  esmeralda: { titulo: "Plan Esmeralda", precio: 4600 },
-  diamante:  { titulo: "Plan Diamante",  precio: 9200 },
+  esmeralda:            { titulo: "Plan Esmeralda",           precio: 4600  },
+  diamante:             { titulo: "Plan Diamante",            precio: 9200  },
+  tienda_esmeralda_30:  { titulo: "Tienda Esmeralda 30 días", precio: 9000  },
+  tienda_esmeralda_90:  { titulo: "Tienda Esmeralda 90 días", precio: 23000 },
+  tienda_esmeralda_180: { titulo: "Tienda Esmeralda 180 días",precio: 41000 },
+  tienda_diamante_30:   { titulo: "Tienda Diamante 30 días",  precio: 18000 },
+  tienda_diamante_90:   { titulo: "Tienda Diamante 90 días",  precio: 45000 },
+  tienda_diamante_180:  { titulo: "Tienda Diamante 180 días", precio: 85000 },
 };
 
 // ── ADMIN SDK (lazy) ─────────────────────────────────────────────
@@ -65,10 +71,12 @@ exports.crearPreferencia = onRequest(
           if (d.esmeraldaPrecio) precios.esmeralda.precio = Number(d.esmeraldaPrecio);
           if (d.diamantePrecio)  precios.diamante.precio  = Number(d.diamantePrecio);
           // Planes de tienda
-          if (d.tiendaPlata30)  precios.tienda_esmeralda_30 = { titulo: "Tienda Esmeralda 30 días", precio: Number(d.tiendaPlata30) };
-          if (d.tiendaPlata90)  precios.tienda_esmeralda_90 = { titulo: "Tienda Esmeralda 90 días", precio: Number(d.tiendaPlata90) };
-          if (d.tiendaOro30)    precios.tienda_diamante_30  = { titulo: "Tienda Diamante 30 días",  precio: Number(d.tiendaOro30) };
-          if (d.tiendaOro90)    precios.tienda_diamante_90  = { titulo: "Tienda Diamante 90 días",  precio: Number(d.tiendaOro90) };
+          if (d.tiendaPlata30)  precios.tienda_esmeralda_30  = { titulo: "Tienda Esmeralda 30 días",  precio: Number(d.tiendaPlata30)  };
+          if (d.tiendaPlata90)  precios.tienda_esmeralda_90  = { titulo: "Tienda Esmeralda 90 días",  precio: Number(d.tiendaPlata90)  };
+          if (d.tiendaPlata180) precios.tienda_esmeralda_180 = { titulo: "Tienda Esmeralda 180 días", precio: Number(d.tiendaPlata180) };
+          if (d.tiendaOro30)    precios.tienda_diamante_30   = { titulo: "Tienda Diamante 30 días",   precio: Number(d.tiendaOro30)    };
+          if (d.tiendaOro90)    precios.tienda_diamante_90   = { titulo: "Tienda Diamante 90 días",   precio: Number(d.tiendaOro90)    };
+          if (d.tiendaOro180)   precios.tienda_diamante_180  = { titulo: "Tienda Diamante 180 días",  precio: Number(d.tiendaOro180)   };
         }
       } catch(e) {}
 
@@ -138,7 +146,7 @@ exports.webhookMP = onRequest(
 
       // Planes de tienda
       if (plan.startsWith("tienda_")) {
-        const dias = plan.endsWith("_90") ? 90 : 30;
+        const dias = plan.endsWith("_180") ? 180 : plan.endsWith("_90") ? 90 : 30;
         const tipoPlan = plan.includes("diamante") ? "diamante" : "esmeralda";
         const hasta = new Date();
         hasta.setDate(hasta.getDate() + dias);

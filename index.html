@@ -1,28 +1,89 @@
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clasificados Chapa J</title>
+from flask import Flask, jsonify
+from flask_cors import CORS
+from binance.client import Client
+import ta
+import pandas as pd
+import threading
+import time
 
-    <!-- PWA -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FF6B2B" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Chapa J" />
+app = Flask(__name__)
+CORS(app)
 
-    <!-- Íconos Apple (iOS no usa manifest) -->
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/logo192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/logo512.png" />
+# Sin API key por ahora - solo datos publicos
+client = Client("", "")
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/logo192.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+precio_actual = 0
+datos_mercado = {}
+
+def calcular_indicadores(symbol="BTCUSDT", intervalo="1h", limite=200):
+    global datos_mercado
+    try:
+        velas = client.get_klines(symbol=symbol, interval=intervalo, limit=limite)
+        df = pd.DataFrame(velas, columns=[
+            'time','open','high','low','close','volume',
+            'ct','qav','not','tbbav','tbqav','ignore'
+        ])
+        df['close'] = df['close'].astype(float)
+        df['high']  = df['high'].astype(float)
+        df['low']   = df['low'].astype(float)
+        df['volume']= df['volume'].astype(float)
+
+        rsi   = ta.momentum.RSIIndicator(df['close'], window=14).rsi().iloc[-1]
+        macd  = ta.trend.MACD(df['close'])
+        ema20 = ta.trend.EMAIndicator(df['close'], window=20).ema_indicator().iloc[-1]
+        ema50 = ta.trend.EMAIndicator(df['close'], window=50).ema_indicator().iloc[-1]
+        ema200= ta.trend.EMAIndicator(df['close'], window=200).ema_indicator().iloc[-1]
+        atr   = ta.volatility.AverageTrueRange(df['high'],df['low'],df['close']).average_true_range().iloc[-1]
+        bb    = ta.volatility.BollingerBands(df['close'])
+
+        precio = df['close'].iloc[-1]
+
+        # Logica de señal
+        macd_val  = macd.macd().iloc[-1]
+        macd_sig  = macd.macd_signal().iloc[-1]
+        tendencia = "ALCISTA" if precio > ema200 else "BAJISTA"
+
+        if rsi < 70 and macd_val > macd_sig and precio > ema20 and precio > ema50:
+            senal = "COMPRA"
+        elif rsi > 70 or macd_val < macd_sig or precio < ema20:
+            senal = "VENTA"
+        else:
+            senal = "ESPERAR"
+
+        datos_mercado = {
+            "precio": round(precio, 2),
+            "rsi": round(rsi, 2),
+            "ema20": round(ema20, 2),
+            "ema50": round(ema50, 2),
+            "ema200": round(ema200, 2),
+            "atr": round(atr, 2),
+            "macd": round(macd_val, 4),
+            "macd_signal": round(macd_sig, 4),
+            "bb_upper": round(bb.bollinger_hband().iloc[-1], 2),
+            "bb_lower": round(bb.bollinger_lband().iloc[-1], 2),
+            "tendencia": tendencia,
+            "senal": senal,
+            "volumen": round(df['volume'].iloc[-1], 2)
+        }
+        print(f"✅ BTC: ${precio:,.2f} | RSI: {rsi:.1f} | Señal: {senal}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+def loop_actualizacion():
+    while True:
+        calcular_indicadores()
+        time.sleep(60)
+
+@app.route('/datos')
+def get_datos():
+    return jsonify(datos_mercado)
+
+@app.route('/ping')
+def ping():
+    return jsonify({"status": "ok"})
+
+if __name__ == '__main__':
+    print("🚀 Iniciando servidor de trading...")
+    t = threading.Thread(target=loop_actualizacion, daemon=True)
+    t.start()
+    app.run(port=5000, debug=False)
