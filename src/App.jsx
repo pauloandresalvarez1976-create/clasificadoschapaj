@@ -1047,7 +1047,6 @@ function YouTubeEmbed({ videoId }) {
 
 function AnuncioDetalle({ anuncio, onClose, user }) {
   const [fotoIdx, setFotoIdx] = useState(0);
-  const [lightbox, setLightbox] = useState(false);
   const [consulta, setConsulta] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [showChatBox, setShowChatBox] = useState(false);
@@ -1061,17 +1060,6 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   },[]);
-
-  useEffect(() => {
-    if (!lightbox) return;
-    const fn = (e) => {
-      if (e.key === "Escape") setLightbox(false);
-      if (e.key === "ArrowRight") setFotoIdx(i => (i + 1) % (anuncio.fotos?.length || 1));
-      if (e.key === "ArrowLeft")  setFotoIdx(i => (i - 1 + (anuncio.fotos?.length || 1)) % (anuncio.fotos?.length || 1));
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [lightbox, anuncio.fotos]);
 
   useEffect(()=>{ updateDoc(doc(db,"anuncios",anuncio.id),{vistas:increment(1)}); },[]);
 
@@ -1162,39 +1150,6 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
   return (
     <div style={{ position:"fixed",inset:0,zIndex:200,background:BG,overflowY:"auto",fontFamily:"Nunito,sans-serif" }}>
 
-      {/* ── LIGHTBOX ── */}
-      {lightbox && (
-        <div onClick={()=>setLightbox(false)}
-          style={{ position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.93)",
-            display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column" }}>
-          <img src={fotos[fotoIdx]} onClick={e=>e.stopPropagation()}
-            style={{ maxWidth:"94vw",maxHeight:"82vh",objectFit:"contain",borderRadius:8,
-              boxShadow:"0 8px 48px rgba(0,0,0,.7)",userSelect:"none" }}/>
-          {fotos.length>1 && (
-            <div style={{ color:"rgba(255,255,255,.7)",fontSize:13,fontWeight:700,marginTop:12 }}>
-              {fotoIdx+1} / {fotos.length}
-            </div>
-          )}
-          <button onClick={()=>setLightbox(false)}
-            style={{ position:"fixed",top:16,right:18,background:"rgba(255,255,255,.15)",
-              border:"none",color:"#fff",borderRadius:"50%",width:42,height:42,
-              fontSize:20,cursor:"pointer",fontWeight:700 }}>✕</button>
-          {fotos.length>1 && (<>
-            <button onClick={e=>{e.stopPropagation();setFotoIdx(i=>(i-1+fotos.length)%fotos.length);}}
-              style={{ position:"fixed",left:12,top:"50%",transform:"translateY(-50%)",
-                background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:"50%",
-                width:48,height:48,fontSize:26,cursor:"pointer" }}>‹</button>
-            <button onClick={e=>{e.stopPropagation();setFotoIdx(i=>(i+1)%fotos.length);}}
-              style={{ position:"fixed",right:12,top:"50%",transform:"translateY(-50%)",
-                background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:"50%",
-                width:48,height:48,fontSize:26,cursor:"pointer" }}>›</button>
-          </>)}
-          <div style={{ color:"rgba(255,255,255,.35)",fontSize:11,marginTop:8 }}>
-            Clic fuera de la imagen para cerrar{fotos.length>1?" · ← → para navegar":""}
-          </div>
-        </div>
-      )}
-
       {/* Barra superior */}
       <div style={{ position:"sticky",top:0,zIndex:10,background:SF,borderBottom:`1px solid ${BR}`,
         padding:"12px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
@@ -1224,8 +1179,7 @@ function AnuncioDetalle({ anuncio, onClose, user }) {
             <div style={{ position:"relative",background:BG,height:"min(360px,55vw)",minHeight:200 }}>
           {fotos.length>0 ? (
             <>
-              <img src={fotos[fotoIdx]} onClick={()=>setLightbox(true)} title="Clic para ver en pantalla completa"
-                style={{ width:"100%",height:"100%",objectFit:"contain",cursor:"zoom-in" }}/>
+              <img src={fotos[fotoIdx]} style={{ width:"100%",height:"100%",objectFit:"contain" }}/>
               {fotos.length>1 && (
                 <>
                   <button onClick={()=>setFotoIdx(i=>(i-1+fotos.length)%fotos.length)}
